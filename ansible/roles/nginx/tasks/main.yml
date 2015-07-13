@@ -1,0 +1,11 @@
+---
+- name: Install DeskPRO nginx template
+  template:
+    src=deskpro.conf
+    dest=/etc/nginx/conf.d/deskpro.conf
+    owner="{% if ansible_os_family == 'Debian' %}www-data{% else %}nginx{% endif %}"
+    group="{% if ansible_os_family == 'Debian' %}www-data{% else %}nginx{% endif %}"
+    mode=0640
+
+- name: Ensure service enabled and started
+  service: name=nginx enabled=yes state=started

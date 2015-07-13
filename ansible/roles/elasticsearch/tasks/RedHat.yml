@@ -1,0 +1,14 @@
+---
+- name: Install the elasticsearch repo
+  template:
+    src=elasticsearch.repo
+    dest=/etc/yum.repos.d/elasticsearch.repo
+    mode=0644
+    owner=root
+    group=root
+
+- name: Import Elasticsearch GPG key
+  rpm_key: key={{elasticsearch_gpgkey}} state=present
+
+- name: Install Elasticsearch
+  yum: name=elasticsearch state=present

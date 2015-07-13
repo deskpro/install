@@ -1,0 +1,24 @@
+---
+- name: Make tty start manually
+  copy:
+    dest=/etc/init/tty1.override
+    content=manual
+  tags: hud
+
+- name: Install hud service
+  template:
+    src=hud.conf
+    dest=/etc/init/hud.conf
+    owner=root
+    group=root
+    mode=0644
+  tags: hud
+
+- name: Install extra packages
+  apt: name={{item}} state=present update_cache=yes
+  with_items:
+    - rungetty
+    - python-urwid
+    - python-netifaces
+    - python-jinja2
+  tags: hud

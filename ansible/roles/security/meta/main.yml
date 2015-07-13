@@ -1,0 +1,8 @@
+---
+dependencies:
+  - role: jnv.unattended-upgrades
+    unattended_automatic_reboot: true
+    when: ansible_distribution == 'Ubuntu'
+  # workaround for missing package on debian jessie
+  - role: jnv.unattended-upgrades
+    when: ansible_distribution == 'Debian'

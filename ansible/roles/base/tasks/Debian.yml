@@ -1,0 +1,21 @@
+---
+- name: Install PHP5.6 PPA
+  apt_repository: repo="ppa:ondrej/php5-5.6"
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Perform upgrade
+  apt: upgrade=yes update_cache=yes
+
+- name: Install packages
+  apt: name={{item}} state=present update_cache=yes
+  with_items:
+    - curl
+    - mariadb-server
+    - nginx
+    - openjdk-7-jre-headless
+    - python-mysqldb
+    - python-pip
+    - python-virtualenv
+    - postfix
+    - ufw
+    - unzip

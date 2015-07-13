@@ -1,0 +1,6 @@
+[elasticsearch-1.6]
+name=Elasticsearch repository for 1.6.x packages
+baseurl=http://packages.elastic.co/elasticsearch/1.6/centos
+gpgcheck=1
+gpgkey={{elasticsearch_gpgkey}}
+enabled=1

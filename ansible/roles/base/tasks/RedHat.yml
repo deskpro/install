@@ -1,0 +1,23 @@
+---
+- name: Make sure extra repositories are installed
+  yum: name={{item}} state=present
+  with_items:
+    - 'epel-release'
+    - 'https://dl.iuscommunity.org/pub/ius/stable/CentOS/7/x86_64/ius-release-1.0-14.ius.centos7.noarch.rpm'
+
+- name: Perform an update
+  yum: name=* state=latest
+
+- name: Install packages
+  yum: name={{item}} state=present
+  with_items:
+    - curl
+    - mariadb-server
+    - nginx
+    - java-1.7.0-openjdk-headless
+    - MySQL-python
+    - python-pip
+    - python-virtualenv
+    - postfix
+    - firewalld
+    - unzip

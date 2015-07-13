@@ -1,0 +1,33 @@
+---
+
+- name: Install script for first run
+  template:
+    src=first-run
+    dest=/root/first-run
+    owner=root
+    group=root
+    mode=0700
+  when: runonce_action == 'install'
+
+- name: Install cron job to fire on reboot
+  cron:
+    name="deskpro run once"
+    cron_file={{deskpro_run_once_cron_name}}
+    state=present
+    user=root
+    special_time=reboot
+    job="/root/first-run"
+  when: runonce_action == 'install'
+
+- name: Remove special cron job
+  cron:
+    name="deskpro run once"
+    cron_file={{deskpro_run_once_cron_name}}
+    state=absent
+  when: runonce_action == 'remove'
+
+- name: Remove first run script
+  file:
+    path=/root/first-run
+    state=absent
+  when: runonce_action == 'remove'

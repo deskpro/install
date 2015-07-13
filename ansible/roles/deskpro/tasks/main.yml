@@ -1,0 +1,52 @@
+---
+- name: Create deskpro share directory
+  file:
+    path={{deskpro_share_root}}
+    state=directory
+    owner=root
+    group=root
+    mode=0755
+
+- name: Download DeskPRO
+  get_url:
+    url={{deskpro_zip_url}}
+    dest=/root/deskpro-latest.zip
+
+- name: Ensure DeskPRO's www directory exists
+  file:
+    path={{deskpro_site_root}}
+    state=directory
+    owner=deskpro
+    group=deskpro
+    mode=0755
+
+- name: Extract DeskPRO
+  unarchive:
+    src=/root/deskpro-latest.zip
+    dest={{deskpro_site_root}}
+    owner=deskpro
+    group=deskpro
+    copy=no
+
+- name: Move data directory to out of the webroot
+  command: cp -r {{deskpro_site_root}}/data {{deskpro_data_root}}
+
+- name: Remove old data directory
+  file: path={{deskpro_site_root}}/data state=absent
+
+- name: Set permissions on data root
+  file:
+    path={{deskpro_data_root}}
+    state=directory
+    owner=deskpro
+    group=deskpro
+    mode=0777
+    recurse=yes
+
+- name: Install DeskPRO upgrade script
+  template:
+    src=deskpro-vm-upgrade
+    dest=/usr/local/bin/deskpro-vm-upgrade
+    mode=0755
+    owner=root
+    group=root

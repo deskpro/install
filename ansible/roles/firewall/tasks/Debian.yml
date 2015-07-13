@@ -1,0 +1,14 @@
+---
+- name: Enable firewall
+  ufw: state=enabled policy=allow
+
+- name: Add allow firewall rules
+  ufw: rule=allow proto=tcp port={{item}}
+  with_items:
+    - 22
+    - 80
+    - 443
+
+- name: Block all other traffic
+  ufw: state=enabled policy=deny
+

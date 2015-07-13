@@ -1,0 +1,82 @@
+#!/usr/bin/env php
+<?php
+
+require '{{deskpro_site_root}}/config.php';
+
+
+function connect_mysql() {
+	$mysqli = new mysqli(
+		DP_DATABASE_HOST,
+		DP_DATABASE_USER,
+		DP_DATABASE_PASSWORD,
+		DP_DATABASE_NAME
+	);
+
+	if ($mysqli->connect_error) {
+		$errno = $mysqli->connect_errno;
+		$err = $mysqli->connect_error;
+
+		die("Connect error ($errno): $err");
+	}
+
+	return $mysqli;
+}
+
+
+function get_new_url($url) {
+	$local_ip = getHostByName(getHostName());
+
+	return "{$url['scheme']}://$local_ip/";
+}
+
+
+function replace_url($mysqli, $url) {
+	$query = <<<EOT
+		REPLACE INTO `settings` (`name`, `value)
+		VALUES ('core.deskpro_url', ?);
+EOT;
+
+	$new_url = get_new_url($url);
+
+	if ($stmt = $mysqli->prepare($query)) {
+		$stmt->bind_param('s', $new_url);
+		$stmt->execute();
+		$stmt->close();
+	}
+
+}
+
+
+function check_url($mysqli) {
+	$query = <<<'EOT'
+		SELECT `value` FROM `settings`
+		WHERE `name` = 'core.deskpro_url';
+EOT;
+
+	if ($result = $mysqli->query($query)) {
+		$rows = $result->num_rows;
+		if ($rows != 1) {
+			die("Expected a single 'core.deskpro_url', got $rows");
+		}
+
+		$row = $result->fetch_assoc();
+
+		$url = parse_url($row['value']);
+		if (filter_var($url['host'], FILTER_VALIDATE_IP)) {
+			replace_url($mysqli, $url);
+		}
+
+		$result->free();
+	}
+}
+
+
+function run() {
+	$mysqli = connect_mysql();
+	check_url($mysqli);
+
+	$mysqli->close();
+}
+
+
+run();

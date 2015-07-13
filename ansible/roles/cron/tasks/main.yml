@@ -1,0 +1,41 @@
+---
+- name: Install DeskPRO cron job
+  cron:
+    name="DeskPRO cron jobs"
+    job="/usr/bin/php {{deskpro_site_root}}/cron.php"
+    cron_file="deskpro"
+    user=deskpro
+    state="present"
+
+- name: Install technical email script
+  template:
+    src=deskpro-tech-email
+    dest=/usr/local/bin/deskpro-tech-email
+    mode=0755
+    owner=root
+    group=root
+
+- name: Install technical email cron job
+  cron:
+    name="DeskPRO Technical email cron job"
+    job="/usr/local/bin/deskpro-tech-email"
+    cron_file="deskpro-tech-email"
+    user=root
+    state=present
+
+- name: Install URL reset script
+  template:
+    src=deskpro-url-reset
+    dest=/usr/local/bin/deskpro-url-reset
+    mode=0755
+    owner=root
+    group=root
+
+- name: Install URL reset cron job
+  cron:
+    name="URL Reset"
+    job="/usr/local/bin/deskpro-url-reset"
+    cron_file="deskpro-url-reset"
+    user=deskpro
+    state=present
+    special_time=reboot

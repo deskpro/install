@@ -1,0 +1,45 @@
+---
+- name: Copy config.php from config.new.php
+  command: cp config.new.php config.php
+    chdir={{deskpro_site_root}}
+    creates={{deskpro_site_root}}/config.php
+
+- name: Make sure new config has correct permissions
+  file:
+    path={{deskpro_site_root}}/config.php
+    owner=deskpro
+    group=deskpro
+    mode=0644
+
+- name: Change database info on config
+  lineinfile:
+    dest={{deskpro_site_root}}/config.php
+    regexp="^define\('{{item.property}}'"
+    line="define('{{item.property}}', '{{item.value}}');"
+  with_items:
+    - property: 'DP_DATABASE_USER'
+      value: 'deskpro'
+    - property: 'DP_DATABASE_PASSWORD'
+      value: '{{deskpro_database_user_password}}'
+    - property: 'DP_TECHNICAL_EMAIL'
+      value: 'admin@example.com'
+
+- name: Change $DP_CONFIG variables
+  lineinfile:
+    dest={{deskpro_site_root}}/config.php
+    regexp="^\$DP_CONFIG\['{{item.property}}'\]"
+    line="$DP_CONFIG['{{item.property}}'] = '{{item.value}}';"
+  with_items:
+    - property: 'php_path'
+      value: '/usr/bin/php'
+    - property: 'dir_data'
+      value: '{{deskpro_data_root}}'
+
+- name: Add elasticsearch config
+  lineinfile:
+    dest={{deskpro_site_root}}/config.php
+    line="define('DP_ELASTIC_INDEX', DP_DATABASE_NAME);"
+
+- name: Update database for mlocate
+  command: updatedb
+  when: ansible_os_family == 'Debian'

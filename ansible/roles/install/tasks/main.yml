@@ -1,0 +1,19 @@
+---
+- name: Run install command
+  command: "/usr/bin/php {{deskpro_site_root}}/cmd.php dp:install"
+  sudo: yes
+  sudo_user: deskpro
+
+- name: Wait for Elasticsearch to become responsive
+  wait_for: port=9200 host=127.0.0.1 delay=5
+
+- name: Insert elasticsearch settings into database
+  command: mysql -u deskpro -p{{deskpro_database_user_password}} -e "REPLACE INTO `settings` (`name`, `value`) VALUES ('elastica.clients.default.url', 'http://127.0.0.1:9200/'), ('elastica.enabled', '1');" deskpro
+
+- name: Populate elasticsearch
+  command: /usr/bin/php {{deskpro_site_root}}/cmd.php dp:elastica:populate --reset
+  sudo: yes
+  sudo_user: deskpro
+
+- name: Turn on url rewrite
+  command: mysql -u deskpro -p{{deskpro_database_user_password}} -e "INSERT INTO `settings` (`name`, `value`) VALUES ('core.rewrite_urls', '1');" deskpro

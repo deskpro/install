@@ -1,0 +1,8 @@
+---
+- name: Set tty resolution
+  lineinfile:
+    dest=/etc/default/grub
+    regexp="^GRUB_GFXPAYLOAD_LINUX="
+    line="GRUB_GFXPAYLOAD_LINUX=800x600"
+  notify:
+    - update grub

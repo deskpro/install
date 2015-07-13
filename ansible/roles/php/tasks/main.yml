@@ -1,0 +1,21 @@
+---
+- name: Include OS specific variables
+  include_vars: "{{ansible_os_family}}.yml"
+
+- name: Install php and dependencies (apt)
+  apt: name={{item}} state=present update_cache=yes
+  with_items: apt_php_packages
+  when: ansible_os_family == "Debian"
+
+- name: Install php and dependencies (yum)
+  yum: name={{item}} state=present
+  with_items: yum_php_packages
+  when: ansible_os_family == "RedHat"
+
+- name: Remove /etc/init.d/php5-fpm due to bug with ansible
+  file: path=/etc/init.d/php5-fpm state=absent
+  when: ansible_os_family == 'Debian'
+
+- name: Enable php5-imap
+  command: php5enmod imap
+  when: ansible_os_family == 'Debian'

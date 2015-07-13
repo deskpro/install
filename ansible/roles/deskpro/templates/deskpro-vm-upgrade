@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+DESKPRO_UPGRADE_SCRIPT_URL=https://www.deskpro.com/go/upgrade-script
+
+function upgrade_deskpro {
+	local filename=$(mktemp -t 'deskpro-upgrade-XXXXXXXX')
+
+	curl -o $filename $DESKPRO_UPGRADE_SCRIPT_URL
+
+	chmod +x $filename
+
+	$filename
+
+	rm -f $filename
+}
+
+upgrade_deskpro

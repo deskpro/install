@@ -1,0 +1,38 @@
+---
+dependencies:
+  - role: nbz4live.php-fpm
+    php_fpm_pools:
+      - name: deskpro
+        chdir: /
+        user: "{% if ansible_os_family == 'Debian' %}www-data{% else %}nginx{% endif %}"
+        group: "{% if ansible_os_family == 'Debian' %}www-data{% else %}nginx{% endif %}"
+        listen: /var/run/deskpro-php-fpm.sock
+        listen.owner: "{% if ansible_os_family == 'Debian' %}www-data{% else %}nginx{% endif %}"
+        listen.group: "{% if ansible_os_family == 'Debian' %}www-data{% else %}nginx{% endif %}"
+    php_fpm_ini:
+      - option: "engine"
+        section: "PHP"
+        value: "1"
+      - option: "error_reporting"
+        section: "PHP"
+        value: "E_ALL & ~E_DEPRECATED & ~E_STRICT"
+      - option: "ldap.max_links"
+        section: "ldap"
+        value: "-1"
+      - option: "upload_max_filesize"
+        section: "PHP"
+        value: "20M"
+      - option: "post_max_size"
+        section: "PHP"
+        value: "20M"
+      - option: "opcache.enable"
+        section: "opcache"
+        value: "1"
+      - option: "opcache.memory_consumption"
+        section: "opcache"
+        value: "128"
+      - option: "apc.enabled"
+        section: "APC"
+        value: "0"
+    php_fpm_yum_packages:
+      - php56u-fpm

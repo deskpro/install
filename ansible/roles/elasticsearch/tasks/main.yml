@@ -1,0 +1,21 @@
+---
+- include: 'Debian.yml'
+  when: ansible_os_family == 'Debian'
+
+- include: 'RedHat.yml'
+  when: ansible_os_family == 'RedHat'
+
+- name: Make Elasticsearch listen only on localhost
+  lineinfile:
+    dest=/etc/elasticsearch/elasticsearch.yml
+    regexp="^network.bind_host{{':'}} "
+    line="network.bind_host{{':'}} 127.0.0.1"
+
+- name: Change PID directory
+  lineinfile:
+    dest=/etc/init.d/elasticsearch
+    regexp="^PID_DIR="
+    line='PID_DIR="/var/run"'
+
+- name: Start and enable  on boot
+  service: name=elasticsearch state=started enabled=yes

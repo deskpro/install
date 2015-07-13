@@ -1,0 +1,36 @@
+---
+- include: 'Debian.yml'
+  when: ansible_os_family == 'Debian'
+  tags: hud
+
+- include: 'RedHat.yml'
+  when: ansible_os_family == 'RedHat'
+  tags: hud
+
+- name: Install boot screen script
+  template:
+    src=boot-screen
+    dest=/usr/local/bin/boot-screen
+    owner=root
+    group=root
+    mode=0640
+  tags: hud
+
+- name: Touch first boot files
+  file: path={{item}} state=touch owner=root group=root mode=0600
+  with_items:
+    - "{{first_run_filename}}"
+    - "{{install_in_progress_filename}}"
+  tags: hud
+
+- name: Copy interface files
+  copy:
+    src={{item}}
+    dest={{deskpro_share_root}}/{{item}}
+    owner=root
+    group=root
+    mode=0640
+  with_items:
+    - interfaces-dhcp
+    - interfaces-static
+  tags: hud

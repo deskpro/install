@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -o errexit -o noclobber -o nounset -o pipefail
+
+MYSQL_PASS=$(head -c 4096 /dev/urandom | tr -cd [:alpha:])
+MYSQL_PASS=${MYSQL_PASS:0:32}
+
+cd /root/ansible
+
+sed -i "s/mysqlpasswordchangeme/\"$MYSQL_PASS\"/" group_vars/all
+
+ansible-playbook -i 127.0.0.1, first-run.yml > /root/first-run.log
+
+rm -f {{install_in_progress_filename}}
