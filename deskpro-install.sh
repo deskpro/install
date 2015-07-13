@@ -172,6 +172,20 @@ detect_distro() {
 	fi
 }
 
+check_memory() {
+	local total_mem=$(awk '/^MemTotal/ { print $2 }' /proc/meminfo)
+
+	if [ "$total_mem" -lt 1000000 ]; then
+		cat <<-EOT
+			This DeskPRO install requires at least 1GB of memory to
+			work properly. Installation on less than 1GB of memory is
+			not supported and may fail for many different reasons.
+		EOT
+
+		question_confirm "Continue anyway?"
+	fi
+}
+
 explain_install() {
 	if [ $ARG_UNATTENDED -eq 1 ]; then
 		return 0
@@ -227,6 +241,7 @@ install_deskpro() {
 
 main() {
 	parse_args "$@"
+	check_memory
 	explain_install
 	detect_repository
 	detect_distro
