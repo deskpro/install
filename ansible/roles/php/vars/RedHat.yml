@@ -7,4 +7,7 @@ yum_php_packages:
   - php56u-imap
   - php56u-json
   - php56u-ldap
+  - php56u-mbstring
   - php56u-mysql
+  - php56u-opcache
+  - php56u-soap
