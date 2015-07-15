@@ -12,7 +12,7 @@ playbooks can currently be used with:
 
 To run the install, you have two options:
 
-* `curl -s -L https://raw.github.com/DeskPRO/install/master/deskpro-install.sh | sudo bash`
+* `curl -s -L https://www.deskpro.com/go/install.sh | sudo bash`
 * Clone the repository and run `sudo deskpro-install.sh`
 
 ### Minimum requirements
