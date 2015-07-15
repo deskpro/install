@@ -3,7 +3,6 @@
 set -o errexit -o noclobber -o nounset -o pipefail
 
 # info parsed by getopt
-ARG_UNATTENDED=0
 ARG_QUIET=0
 
 # data needed by the script
@@ -23,7 +22,7 @@ info_message() {
 }
 
 parse_args() {
-	local params=$(getopt -o 'hqu' -l 'help,quiet,unattended' --name "$0" -- "$@")
+	local params=$(getopt -o 'hq' -l 'help,quiet' --name "$0" -- "$@")
 	eval set -- "$params"
 
 	while true; do
@@ -34,10 +33,6 @@ parse_args() {
 				;;
 			-q|--quiet)
 				ARG_QUIET=1
-				shift
-				;;
-			-u|--unattended)
-				ARG_UNATTENDED=1
 				shift
 				;;
 			--)
@@ -61,23 +56,6 @@ Options:
   -u, --unattended      Perform an unattended install. No questions
                         will be asked.
 EOT
-}
-
-question_confirm() {
-	while true; do
-		read -p "$1 (yes/no) " yesno
-		case $yesno in
-			yes)
-				break
-				;;
-			no)
-				exit 1
-				;;
-			*)
-				echo 'Please answer yes or no'
-				;;
-		esac
-	done
 }
 
 install_ansible_debian() {
@@ -173,6 +151,10 @@ detect_distro() {
 }
 
 check_memory() {
+	if [ $ARG_QUIET -ne 0 ]; then
+		return
+	fi
+
 	local total_mem=$(awk '/^MemTotal/ { print $2 }' /proc/meminfo)
 
 	if [ "$total_mem" -lt 1000000 ]; then
@@ -181,52 +163,7 @@ check_memory() {
 			work properly. Installation on less than 1GB of memory is
 			not supported and may fail for many different reasons.
 		EOT
-
-		question_confirm "Continue anyway?"
 	fi
-}
-
-explain_install() {
-	if [ $ARG_UNATTENDED -eq 1 ]; then
-		return 0
-	fi
-
-	cat <<'EOF'
-Hi there,
-
-This script will install DeskPRO on this very server. Here's a
-rough guide to what will happen during the install:
-
-    * Ansible playbooks will be downloaded
-    * We'll install repositories for software not usually bundled
-      with your distribution
-    * Your system will be upgraded
-    * A user named `deskpro` will be created
-    * We'll install ansible, nginx, MariaDB, PHP, and Elasticsearch
-      (and configure all that)
-    * Set up your firewall to allow only ports 22, 80, 443 in
-    * Download and install DeskPRO itself
-    * Set up a couple cron jobs
-
-You can check the sources for what is really happening at this
-address:
-
-    https://github.com/DeskPRO/install
-
-EOF
-
-	if [ "$(id -u)" != "0" ]; then
-		cat <<-'EOT'
-		Some commands will need to run as root. You'll be prompted for
-		the sudo password at the right time. If you do not want to be
-		prompted, download this script instead and run it with:
-		    
-		    sudo bash deskpro-install.sh
-
-		EOT
-	fi
-
-	question_confirm "Would you like to continue with the installation?"
 }
 
 install_deskpro() {
@@ -242,7 +179,6 @@ install_deskpro() {
 main() {
 	parse_args "$@"
 	check_memory
-	explain_install
 	detect_repository
 	detect_distro
 	install_deskpro

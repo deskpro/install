@@ -12,8 +12,8 @@ playbooks can currently be used with:
 
 To run the install, you have two options:
 
-* `bash <(curl -s -L https://raw.github.com/DeskPRO/install/master/deskpro-install.sh)`
-* Clone the repository and run `deskpro-install.sh`
+* `curl -s -L https://raw.github.com/DeskPRO/install/master/deskpro-install.sh | sudo bash`
+* Clone the repository and run `sudo deskpro-install.sh`
 
 ### Minimum requirements
 
