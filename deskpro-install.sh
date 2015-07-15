@@ -6,7 +6,8 @@ set -o errexit -o noclobber -o nounset -o pipefail
 ARG_QUIET=0
 
 # data needed by the script
-DATA_ANSIBLE_DIR=''
+ANSIBLE_DIR=''
+SUDO=''
 
 info_message() {
 	local no_newline=''
@@ -61,8 +62,8 @@ EOT
 install_ansible_debian() {
 	info_message -n 'Installing ansible... '
 	(
-		sudo apt-get update
-		sudo apt-get install -y ansible
+		$SUDO apt-get update
+		$SUDO apt-get install -y ansible
 	) >/dev/null 2>&1
 	info_message 'Done'
 }
@@ -70,11 +71,11 @@ install_ansible_debian() {
 install_ansible_ubuntu() {
 	info_message -n 'Installing ansible... '
 	(
-		sudo apt-get update
-		sudo apt-get install -y software-properties-common
-		sudo apt-add-repository -y ppa:ansible/ansible
-		sudo apt-get update
-		sudo apt-get install -y ansible
+		$SUDO apt-get update
+		$SUDO apt-get install -y software-properties-common
+		$SUDO apt-add-repository -y ppa:ansible/ansible
+		$SUDO apt-get update
+		$SUDO apt-get install -y ansible
 	) >/dev/null 2>&1
 	info_message 'Done'
 }
@@ -87,8 +88,8 @@ install_ansible_fedora() {
 install_ansible_centos() {
 	info_message -n 'Installing ansible... '
 	(
-		sudo yum install -y epel-release
-		sudo yum install -y ansible
+		$SUDO yum install -y epel-release
+		$SUDO yum install -y ansible
 	) >/dev/null 2>&1
 	info_message 'Done'
 }
@@ -100,9 +101,9 @@ install_ansible_rhel() {
 
 detect_repository() {
 	local current_dir=$(dirname $0)
-	DATA_ANSIBLE_DIR=$current_dir/ansible
+	ANSIBLE_DIR=$current_dir/ansible
 
-	if [ ! -e $DATA_ANSIBLE_DIR ]; then
+	if [ ! -e $ANSIBLE_DIR ]; then
 		local tmp_dir=$(mktemp -dt dpbuild-XXXXXXXX)
 
 		info_message -n 'Downloading ansible scripts... '
@@ -112,7 +113,7 @@ detect_repository() {
 
 		info_message 'Done'
 
-		DATA_ANSIBLE_DIR=$tmp_dir/install-master/ansible
+		ANSIBLE_DIR=$tmp_dir/install-master/ansible
 	fi
 }
 
@@ -150,6 +151,24 @@ detect_distro() {
 	fi
 }
 
+check_root() {
+	if [ "$(id -u)" != "0" ]; then
+		SUDO='sudo'
+
+		if [ $ARG_QUIET -ne 0 ]; then
+			return
+		fi
+
+		cat <<-'EOT'
+			Most commands from this script will need to run as root.
+			You'll be prompted for the sudo password at the right time.
+			If you do not want to be prompted, run this script as root
+			or using sudo directly instead.
+
+		EOT
+	fi
+}
+
 check_memory() {
 	if [ $ARG_QUIET -ne 0 ]; then
 		return
@@ -162,22 +181,24 @@ check_memory() {
 			This DeskPRO install requires at least 1GB of memory to
 			work properly. Installation on less than 1GB of memory is
 			not supported and may fail for many different reasons.
+
 		EOT
 	fi
 }
 
 install_deskpro() {
-	cd $DATA_ANSIBLE_DIR
+	cd $ANSIBLE_DIR
 
 	info_message -n 'Installing role dependencies... '
 	ansible-galaxy install -r requirements.txt -i -p roles >/dev/null 2>&1
 	info_message 'Done'
 
-	sudo ansible-playbook -i 127.0.0.1, full-install.yml
+	$SUDO ansible-playbook -i 127.0.0.1, full-install.yml
 }
 
 main() {
 	parse_args "$@"
+	check_root
 	check_memory
 	detect_repository
 	detect_distro
