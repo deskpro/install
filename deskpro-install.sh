@@ -9,6 +9,8 @@ ARG_QUIET=0
 ANSIBLE_DIR=''
 SUDO=''
 MYSQL_PASS=''
+FULL_LOG_FILE=''
+SUCCESS=false
 
 info_message() {
 	local no_newline=''
@@ -24,7 +26,7 @@ info_message() {
 }
 
 parse_args() {
-	local params=$(getopt -o 'hq' -l 'help,quiet' --name "$0" -- "$@")
+	local params=$(getopt -o 'hl:q' -l 'help,log:,quiet' --name "$0" -- "$@")
 	eval set -- "$params"
 
 	while true; do
@@ -32,6 +34,10 @@ parse_args() {
 			-h|--help)
 				show_usage
 				exit 0
+				;;
+			-l|--log)
+				FULL_LOG_FILE="$1"
+				shift 2
 				;;
 			-q|--quiet)
 				ARG_QUIET=1
@@ -46,6 +52,11 @@ parse_args() {
 				exit 1
 		esac
 	done
+
+	if [ -z "$FULL_LOG_FILE" ]; then
+		local log_file=$(mktemp -t install-XXXXXXXX.log)
+		FULL_LOG_FILE=$log_file
+	fi
 }
 
 show_usage() {
@@ -65,7 +76,7 @@ install_ansible_debian() {
 	(
 		$SUDO apt-get update
 		$SUDO apt-get install -y ansible
-	) >/dev/null 2>&1
+	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
 
@@ -77,7 +88,7 @@ install_ansible_ubuntu() {
 		$SUDO apt-add-repository -y ppa:ansible/ansible
 		$SUDO apt-get update
 		$SUDO apt-get install -y ansible
-	) >/dev/null 2>&1
+	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
 
@@ -91,7 +102,7 @@ install_ansible_centos() {
 	(
 		$SUDO yum install -y epel-release
 		$SUDO yum install -y ansible
-	) >/dev/null 2>&1
+	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
 
@@ -110,7 +121,7 @@ detect_repository() {
 		info_message -n 'Downloading ansible scripts... '
 
 		cd $tmp_dir
-		curl -s -L https://github.com/DeskPRO/install/archive/master.tar.gz | tar xz
+		curl -L https://github.com/DeskPRO/install/archive/master.tar.gz 2>>"${FULL_LOG_FILE}" | tar xz
 
 		info_message 'Done'
 
@@ -184,6 +195,8 @@ check_memory() {
 			not supported and may fail for many different reasons.
 
 		EOT
+
+		sleep 3
 	fi
 }
 
@@ -198,10 +211,28 @@ install_deskpro() {
 	cd $ANSIBLE_DIR
 
 	info_message -n 'Installing role dependencies... '
-	ansible-galaxy install -r requirements.txt -i -p roles >/dev/null 2>&1
+	ansible-galaxy install -r requirements.txt -i -p roles >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 
-	$SUDO ansible-playbook -i 127.0.0.1, full-install.yml
+	$SUDO ansible-playbook -i 127.0.0.1, full-install.yml 2>&1 | tee --append ${FULL_LOG_FILE}
+}
+
+upload_logs() {
+	sed -i "s/$MYSQL_PASS/**********/g" $FULL_LOG_FILE
+
+	curl https://log.deskpro.com/install -F log_file=@$FULL_LOG_FILE -F success=$SUCCESS >/dev/null 2>&1
+}
+
+install_failed() {
+	check_memory
+	upload_logs
+
+	cat <<-EOT
+		The installation has failed.
+
+		You can check the full log for in $FULL_LOG_FILE
+
+	EOT
 }
 
 main() {
@@ -212,6 +243,11 @@ main() {
 	detect_distro
 	change_mysql_password
 	install_deskpro
+
+
+	SUCCESS=true
+	upload_logs
+	check_memory
 
 	if [ $ARG_QUIET -eq 0 ]; then
 		local ip=$(curl -s https://api.ipify.org)
@@ -226,5 +262,7 @@ main() {
 		EOT
 	fi
 }
+
+trap install_failed ERR
 
 main "$@"
