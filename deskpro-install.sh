@@ -8,6 +8,7 @@ ARG_QUIET=0
 # data needed by the script
 ANSIBLE_DIR=''
 SUDO=''
+MYSQL_PASS=''
 
 info_message() {
 	local no_newline=''
@@ -186,6 +187,13 @@ check_memory() {
 	fi
 }
 
+change_mysql_password() {
+	MYSQL_PASS=$(head -c 4096 /dev/urandom | tr -cd [:alpha:])
+	MYSQL_PASS=${MYSQL_PASS:0:32}
+
+	sed -i "s/mysqlpasswordchangeme/\"$MYSQL_PASS\"/" $ANSIBLE_DIR/group_vars/all
+}
+
 install_deskpro() {
 	cd $ANSIBLE_DIR
 
@@ -202,6 +210,7 @@ main() {
 	check_memory
 	detect_repository
 	detect_distro
+	change_mysql_password
 	install_deskpro
 
 	if [ $ARG_QUIET -eq 0 ]; then
