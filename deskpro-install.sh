@@ -71,42 +71,42 @@ Options:
 EOT
 }
 
-install_ansible_debian() {
-	info_message -n 'Installing ansible... '
+install_dependencies_debian() {
+	info_message -n 'Installing dependencies... '
 	(
 		$SUDO apt-get update
-		$SUDO apt-get install -y ansible
+		$SUDO apt-get install -y curl ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
 
-install_ansible_ubuntu() {
-	info_message -n 'Installing ansible... '
+install_dependencies_ubuntu() {
+	info_message -n 'Installing dependencies... '
 	(
 		$SUDO apt-get update
 		$SUDO apt-get install -y software-properties-common
 		$SUDO apt-add-repository -y ppa:ansible/ansible
 		$SUDO apt-get update
-		$SUDO apt-get install -y ansible
+		$SUDO apt-get install -y curl ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
 
-install_ansible_fedora() {
+install_dependencies_fedora() {
 	echo 'Fedora is not supported by this script yet'
 	exit 1
 }
 
-install_ansible_centos() {
-	info_message -n 'Installing ansible... '
+install_dependencies_centos() {
+	info_message -n 'Installing dependencies... '
 	(
 		$SUDO yum install -y epel-release
-		$SUDO yum install -y ansible
+		$SUDO yum install -y curl ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
 
-install_ansible_rhel() {
+install_dependencies_rhel() {
 	echo 'RHEL is not supported by this script yet'
 	exit 1
 }
@@ -135,28 +135,28 @@ detect_distro() {
 
 		case $ID in
 			fedora)
-				install_ansible_fedora
+				install_dependencies_fedora
 				;;
 			centos)
-				install_ansible_centos
+				install_dependencies_centos
 				;;
 			rhel)
-				install_ansible_rhel
+				install_dependencies_rhel
 				;;
 			ubuntu)
-				install_ansible_ubuntu
+				install_dependencies_ubuntu
 				;;
 			debian)
-				install_ansible_debian
+				install_dependencies_debian
 				;;
 			*)
 				echo 'Unknown Linux distribution'
 				exit 1
 		esac
 	elif [ -e /etc/redhat-release ]; then
-		install_ansible_rhel
+		install_dependencies_rhel
 	elif [ -e /etc/debian_version ]; then
-		install_ansible_debian
+		install_dependencies_debian
 	else
 		echo 'Unknown Linux distribution'
 		exit 1
@@ -239,8 +239,8 @@ main() {
 	parse_args "$@"
 	check_root
 	check_memory
-	detect_repository
 	detect_distro
+	detect_repository
 	change_mysql_password
 	install_deskpro
 

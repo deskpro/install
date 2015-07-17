@@ -35,16 +35,7 @@ You will need a server with *at least `1GB` of RAM* to properly run DeskPRO and
 its dependencies.
 
 You will need root access to the server you want to install DeskPRO into, or be
-able to use `sudo`. The install process also assumes you have `curl` installed.
-If you don't, you can run one of the commands listed below to install it:
-
-```bash
-apt-get update && apt-get install -y curl # for Debian/Ubuntu hosts
-```
-
-```bash
-yum install -y curl # for CentOS hosts
-```
+able to use `sudo`.
 
 ## DeskPRO Virtual Machines
 
