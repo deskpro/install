@@ -13,21 +13,24 @@ playbooks can currently be used with:
 
 To run the install, you have two options:
 
-1: Run a command on your server:
+1. Run a command on your server:
+    - Ubuntu or Debian:
 
-Ubuntu or Debian:
-`wget -q -O - https://www.deskpro.com/go/install.sh | sudo bash`
+      ```
+      wget -q -O - https://www.deskpro.com/go/install.sh | sudo bash
+      ```
+    - CentOS:
 
-Centos:
-`curl -s -L https://www.deskpro.com/go/install.sh | sudo bash`
+      ```
+      curl -s -L https://www.deskpro.com/go/install.sh | sudo bash
+      ```
+2. Use git to clone the repository and run `sudo deskpro-install.sh`
 
-2: Use git to clone the repository and run `sudo deskpro-install.sh`
-
-```
-git clone https://github.com/DeskPRO/install.git
-cd install
-sudo ./deskpro-install.sh
-```
+    ```
+    git clone https://github.com/DeskPRO/install.git
+    cd install
+    sudo ./deskpro-install.sh
+    ```
 
 ### Minimum requirements
 
