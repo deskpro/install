@@ -5,6 +5,7 @@ DeskPRO and its dependencies (MySQL, Elasticsearch) to a single server. These
 playbooks can currently be used with:
 
 * Ubuntu 14.04
+* Ubuntu 15.04
 * Debian 8.1
 * CentOS 7
 
