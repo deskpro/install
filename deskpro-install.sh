@@ -11,6 +11,7 @@ SUDO=''
 MYSQL_PASS=''
 FULL_LOG_FILE=''
 SUCCESS=false
+DISTRO='Unknown'
 
 info_message() {
 	local no_newline=''
@@ -153,10 +154,14 @@ detect_distro() {
 				echo 'Unknown Linux distribution'
 				exit 1
 		esac
+
+		DISTRO="$PRETTY_NAME"
 	elif [ -e /etc/redhat-release ]; then
 		install_dependencies_rhel
+		DISTRO=$(cat /etc/redhat-release)
 	elif [ -e /etc/debian_version ]; then
 		install_dependencies_debian
+		DISTRO=$(cat /etc/debian_version)
 	else
 		echo 'Unknown Linux distribution'
 		exit 1
@@ -220,7 +225,11 @@ install_deskpro() {
 upload_logs() {
 	sed -i "s/$MYSQL_PASS/**********/g" $FULL_LOG_FILE
 
-	curl https://log.deskpro.com/install -F log_file=@$FULL_LOG_FILE -F success=$SUCCESS >/dev/null 2>&1
+	curl https://log.deskpro.com/install \
+		-F log_file=@$FULL_LOG_FILE \
+		-F success=$SUCCESS \
+		-F distro="$DISTRO" \
+		>/dev/null 2>&1
 }
 
 install_failed() {
