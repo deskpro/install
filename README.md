@@ -1,7 +1,7 @@
 # Installing DeskPRO
 
 This repository contains a set of Ansible playbooks that you can use to install
-DeskPRO and its dependencies (MySQL, Elasticsearch) to a single server. These
+DeskPRO and its dependencies (PHP, Nginx, MySQL, Elasticsearch) to a single server. These
 playbooks can currently be used with:
 
 * Ubuntu 14.04
