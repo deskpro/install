@@ -5,7 +5,7 @@ set -o errexit -o noclobber -o nounset -o pipefail
 MYSQL_PASS=$(head -c 4096 /dev/urandom | tr -cd [:alpha:])
 MYSQL_PASS=${MYSQL_PASS:0:32}
 
-cd /root/ansible
+cd /root/deskpro-install/ansible
 
 sed -i "s/mysqlpasswordchangeme/\"$MYSQL_PASS\"/" group_vars/all
 
