@@ -86,7 +86,7 @@ install_dependencies_ubuntu() {
 	(
 		$SUDO apt-get update
 		$SUDO apt-get install -y software-properties-common
-		$SUDO apt-add-repository -y ppa:ansible/ansible
+		$SUDO apt-add-repository -y ppa:ansible/ansible-1.9
 		$SUDO apt-get update
 		$SUDO apt-get install -y curl ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
