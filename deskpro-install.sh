@@ -76,7 +76,7 @@ install_dependencies_debian() {
 	info_message -n 'Installing dependencies... '
 	(
 		$SUDO apt-get update
-		$SUDO apt-get install -y curl ansible
+		$SUDO apt-get install -y curl ansible aptitude locate
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
