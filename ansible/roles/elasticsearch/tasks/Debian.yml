@@ -1,9 +1,21 @@
 ---
 - name: Install the Elasticsearch repo
-  apt_repository: repo="deb http://packages.elastic.co/elasticsearch/1.6/debian stable main"
+  apt_repository: repo="deb https://packages.elastic.co/elasticsearch/2.x/debian stable main"
 
 - name: Add Elasticsearch GPG key
   apt_key: url={{elasticsearch_gpgkey}}
 
+  # allow unauthenticated install on ubuntu 16 because of
+  # https://github.com/elastic/elasticsearch/issues/17724
 - name: Install Elasticsearch
-  apt: name=elasticsearch state=present update_cache=yes
+  apt:
+    name: elasticsearch
+    force: yes
+    update_cache: yes
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'xenial'
+
+- name: Install Elasticsearch
+  apt:
+    name: elasticsearch
+    update_cache: yes
+  when: ansible_distribution == 'Debian' or ansible_distribution_release == 'trusty'

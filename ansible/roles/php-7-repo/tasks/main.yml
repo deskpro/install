@@ -1,0 +1,91 @@
+---
+- name: Add ondrej ppa on Ubuntu
+  apt_repository:
+    repo: "ppa:ondrej/php"
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'trusty'
+
+- name: Add dotdeb repository on Debian
+  apt_repository:
+    repo: "{{item}}"
+  with_items:
+    - "deb http://packages.dotdeb.org jessie all"
+    - "deb-src http://packages.dotdeb.org jessie all"
+  when: ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie'
+
+- name: Add Dotdeb GPG key
+  apt_key:
+    url: "https://www.dotdeb.org/dotdeb.gpg"
+  register: dotdeb_gpg_key
+  when: ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie'
+
+- name: Force apt-get update if key was just installed
+  apt:
+    update_cache: yes
+  when: dotdeb_gpg_key | changed
+
+- name: Set facts for Debian
+  set_fact:
+    php_packages:
+      - libpcre3-dev
+      - php7.0-apcu
+      - php7.0-cli
+      - php7.0-common
+      - php7.0-curl
+      - php7.0-dev
+      - php7.0-fpm
+      - php7.0-gd
+      - php7.0-imap
+      - php7.0-json
+      - php7.0-mbstring
+      - php7.0-mysql
+      - php7.0-opcache
+      - php7.0-sqlite3
+      - php7.0-xml
+  when: ansible_distribution == 'Debian'
+
+- name: Set facts for Ubuntu
+  set_fact:
+    php_packages:
+      - libpcre3-dev
+      - php7.0-cli
+      - php7.0-common
+      - php7.0-curl
+      - php7.0-dev
+      - php7.0-fpm
+      - php7.0-gd
+      - php7.0-imap
+      - php7.0-json
+      - php7.0-mbstring
+      - php7.0-mysql
+      - php7.0-opcache
+      - php7.0-sqlite3
+      - php7.0-xml
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Add IUS repository on CentOS
+  yum:
+    name: "https://centos7.iuscommunity.org/ius-release.rpm"
+  when: ansible_distribution == 'CentOS'
+
+- name: Set correct facts for IUS packages
+  set_fact:
+    php_fpm_pool_group: nginx
+    php_fpm_pool_user: php-fpm
+    php_packages:
+      - php70u-cli
+      - php70u-common
+      - php70u-devel
+      - php70u-fpm
+      - php70u-gd
+      - php70u-imap
+      - php70u-json
+      - php70u-ldap
+      - php70u-mbstring
+      - php70u-mysqlnd
+      - php70u-opcache
+      - php70u-pdo
+      - php70u-pear
+      - php70u-pecl-apcu
+      - php70u-xml
+      - php70u-xmlrpc
+  when: ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'

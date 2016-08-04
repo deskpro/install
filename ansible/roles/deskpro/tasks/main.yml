@@ -28,12 +28,6 @@
     group=deskpro
     copy=no
 
-- name: Move data directory to out of the webroot
-  command: cp -r {{deskpro_site_root}}/data {{deskpro_data_root}}
-
-- name: Remove old data directory
-  file: path={{deskpro_site_root}}/data state=absent
-
 - name: Set permissions on data root
   file:
     path={{deskpro_data_root}}

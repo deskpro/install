@@ -13,7 +13,6 @@
     - deskpro
     - firewall
     - mysql
-    - config
     - install
     - security
     - cron

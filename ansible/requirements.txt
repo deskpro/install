@@ -1,3 +1,4 @@
-nbz4live.php-fpm,0.2.9
+geerlingguy.php,3.2.2
+geerlingguy.composer,1.4.1
 jdauphant.nginx,v1.11.1
 jnv.unattended-upgrades,v1.2.0

@@ -8,6 +8,7 @@ ARG_QUIET=0
 # data needed by the script
 ANSIBLE_DIR=''
 SUDO=''
+UNBUFFER='stdbuf -i0 -o0 -e0'
 MYSQL_PASS=''
 FULL_LOG_FILE=''
 SUCCESS=false
@@ -76,7 +77,8 @@ install_dependencies_debian() {
 	info_message -n 'Installing dependencies... '
 	(
 		$SUDO apt-get update
-		$SUDO apt-get install -y curl ansible aptitude locate
+		$SUDO apt-get install -y curl aptitude locate python-pip python-dev python-markupsafe apt-transport-https
+		$SUDO pip install 'ansible<2.1'
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
@@ -85,10 +87,9 @@ install_dependencies_ubuntu() {
 	info_message -n 'Installing dependencies... '
 	(
 		$SUDO apt-get update
-		$SUDO apt-get install -y software-properties-common
-		$SUDO apt-add-repository -y ppa:ansible/ansible-1.9
-		$SUDO apt-get update
-		$SUDO apt-get install -y curl ansible
+		$SUDO apt-get install -y curl aptitude locate python-pip python-dev python-markupsafe libffi-dev libssl-dev
+		$SUDO pip install 'ansible<2.1'
+		$SUDO pip install --upgrade setuptools
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
@@ -102,7 +103,9 @@ install_dependencies_centos() {
 	info_message -n 'Installing dependencies... '
 	(
 		$SUDO yum install -y epel-release
-		$SUDO yum install -y curl ansible
+		$SUDO yum install -y curl python-pip python-devel gcc libffi-devel openssl-devel
+		$SUDO pip install --upgrade setuptools
+		$SUDO pip install 'ansible<2.1'
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
@@ -219,7 +222,7 @@ install_deskpro() {
 	ansible-galaxy install -r requirements.txt -i -p roles >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 
-	$SUDO ansible-playbook -i 127.0.0.1, full-install.yml 2>&1 | tee --append ${FULL_LOG_FILE}
+	$SUDO ansible-playbook -i 127.0.0.1, full-install.yml 2>&1 | $UNBUFFER tee --append ${FULL_LOG_FILE}
 }
 
 upload_logs() {

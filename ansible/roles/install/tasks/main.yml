@@ -1,8 +1,18 @@
 ---
+- name: Create profile
+  template:
+    src: profile.json.j2
+    dest: "{{deskpro_profile_path}}"
+
 - name: Run install command
-  command: "/usr/bin/php {{deskpro_site_root}}/cmd.php dp:install"
+  command: "/usr/bin/php {{deskpro_site_root}}/bin/install --profile {{deskpro_profile_path}} -n -x file_integrity"
   sudo: yes
   sudo_user: deskpro
+
+- name: Delete profile
+  file:
+    path: "{{deskpro_profile_path}}"
+    state: absent
 
 - name: Wait for Elasticsearch to become responsive
   wait_for: port=9200 host=127.0.0.1 delay=5
@@ -11,7 +21,7 @@
   command: mysql -u deskpro -p{{deskpro_database_user_password}} -e "REPLACE INTO `settings` (`name`, `value`) VALUES ('elastica.clients.default.url', 'http://127.0.0.1:9200/'), ('elastica.enabled', '1');" deskpro
 
 - name: Populate elasticsearch
-  command: /usr/bin/php {{deskpro_site_root}}/cmd.php dp:elastica:populate --reset
+  command: /usr/bin/php {{deskpro_site_root}}/bin/console dp:elastica:populate --reset
   sudo: yes
   sudo_user: deskpro
 

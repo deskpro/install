@@ -14,3 +14,5 @@ first_run_filename: "/root/.this-is-the-first-run"
 install_in_progress_filename: "/root/.install-in-progress"
 
 deskpro_zip_url: "{{lookup('env', 'DESKPRO_ZIP_URL') | default('http://www.deskpro.com/downloads/deskpro.zip', true)}}"
+
+deskpro_profile_path: "/var/tmp/deskpro-install-profile.json"

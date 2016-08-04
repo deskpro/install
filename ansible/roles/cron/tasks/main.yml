@@ -2,10 +2,18 @@
 - name: Install DeskPRO cron job
   cron:
     name="DeskPRO cron jobs"
-    job="/usr/bin/php {{deskpro_site_root}}/cron.php"
+    job="/usr/bin/php {{deskpro_site_root}}/bin/cron --no-auto-updater"
     cron_file="deskpro"
     user=deskpro
     state="present"
+
+- name: Install updater cron job
+  cron:
+    name="Deskpro cron updater"
+    job="/usr/bin/php {{deskpro_site_root}}/bin/cron --auto-updater"
+    cron_file="deskpro_updater"
+    user=deskpro
+    state=present
 
 - name: Install technical email script
   template:

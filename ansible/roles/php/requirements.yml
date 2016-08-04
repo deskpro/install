@@ -1,0 +1,5 @@
+---
+- src: geerlingguy.php
+  version: 3.2.2
+- src: geerlingguy.composer
+  version: 1.4.1
