@@ -5,7 +5,7 @@ DeskPRO and its dependencies (PHP, Nginx, MySQL, Elasticsearch) to a single serv
 playbooks can currently be used with:
 
 * Ubuntu 14.04
-* Ubuntu 15.04
+* Ubuntu 16.04
 * Debian 8.1
 * CentOS 7
 
