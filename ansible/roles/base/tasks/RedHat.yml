@@ -20,3 +20,9 @@
     - postfix
     - firewalld
     - unzip
+
+- name: Ensure sudo does not require a tty
+  lineinfile:
+    dest: /etc/sudoers
+    regexp: '^Defaults\s+requiretty$'
+    state: absent
