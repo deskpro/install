@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o errexit -o noclobber -o nounset -o pipefail
+set -o errexit -o errtrace -o noclobber -o nounset -o pipefail
 
 # info parsed by getopt
 ARG_QUIET=0
