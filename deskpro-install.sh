@@ -76,9 +76,15 @@ EOT
 install_dependencies_debian() {
 	info_message -n 'Installing dependencies... '
 	(
+		local deb_url="https://s3.eu-central-1.amazonaws.com/deskpro/install/ansible-2.1.1.0-0-jessie.deb"
+		local deb_file=$(mktemp -t ansible-jessie-XXXX.deb)
+
+		curl -L -s --show-error -o $deb_file $deb_url
 		$SUDO apt-get update
-		$SUDO apt-get install -y curl aptitude locate python-pip python-dev python-markupsafe apt-transport-https
-		$SUDO pip install 'ansible<2.1'
+		$SUDO apt-get install -y curl aptitude apt-transport-https
+		$SUDO dpkg -i $deb_file || $SUDO apt-get -fy install
+
+		rm -f $deb_file
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
@@ -87,9 +93,10 @@ install_dependencies_ubuntu() {
 	info_message -n 'Installing dependencies... '
 	(
 		$SUDO apt-get update
-		$SUDO apt-get install -y curl aptitude locate python-pip python-dev python-markupsafe libffi-dev libssl-dev
-		$SUDO pip install 'ansible<2.1'
-		$SUDO pip install --upgrade setuptools
+		$SUDO apt-get install -y software-properties-common
+		$SUDO apt-add-repository -y ppa:ansible/ansible
+		$SUDO apt-get update
+		$SUDO apt-get install -y curl aptitude ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
@@ -103,9 +110,7 @@ install_dependencies_centos() {
 	info_message -n 'Installing dependencies... '
 	(
 		$SUDO yum install -y epel-release
-		$SUDO yum install -y curl python-pip python-devel gcc libffi-devel openssl-devel
-		$SUDO pip install --upgrade setuptools
-		$SUDO pip install 'ansible<2.1'
+		$SUDO yum install -y curl ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }

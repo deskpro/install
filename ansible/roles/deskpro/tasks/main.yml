@@ -21,12 +21,15 @@
     mode=0755
 
 - name: Extract DeskPRO
-  unarchive:
-    src=/root/deskpro-latest.zip
-    dest={{deskpro_site_root}}
-    owner=deskpro
-    group=deskpro
-    copy=no
+  command: unzip -u -d "{{deskpro_site_root}}" /root/deskpro-latest.zip
+
+- name: Ensure files are owned by deskpro
+  file:
+    path: "{{deskpro_site_root}}"
+    owner: deskpro
+    group: deskpro
+    recurse: yes
+    state: directory
 
 - name: Set permissions on data root
   file:
