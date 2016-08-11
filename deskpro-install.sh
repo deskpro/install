@@ -247,6 +247,8 @@ install_failed() {
 		You can check the full log for in $FULL_LOG_FILE
 
 	EOT
+
+	exit 1
 }
 
 main() {
