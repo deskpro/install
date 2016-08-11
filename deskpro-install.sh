@@ -229,13 +229,15 @@ upload_logs() {
 	sed -i "s/$MYSQL_PASS/**********/g" $FULL_LOG_FILE
 
 	curl https://log.deskpro.com/install \
+		--silent --show-error \
 		-F log_file=@$FULL_LOG_FILE \
 		-F success=$SUCCESS \
-		-F distro="$DISTRO" \
-		>/dev/null 2>&1
+		-F distro="$DISTRO"
 }
 
 install_failed() {
+	set +o errexit
+
 	check_memory
 	upload_logs
 
