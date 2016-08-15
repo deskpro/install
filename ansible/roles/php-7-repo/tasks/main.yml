@@ -41,6 +41,7 @@
       - php7.0-opcache
       - php7.0-sqlite3
       - php7.0-xml
+      - php7.0-zip
   when: ansible_distribution == 'Debian'
 
 - name: Set facts for Ubuntu
@@ -60,6 +61,7 @@
       - php7.0-opcache
       - php7.0-sqlite3
       - php7.0-xml
+      - php7.0-zip
   when: ansible_distribution == 'Ubuntu'
 
 - name: Add IUS repository on CentOS
