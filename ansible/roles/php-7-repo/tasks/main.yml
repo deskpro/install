@@ -35,10 +35,13 @@
       - php7.0-fpm
       - php7.0-gd
       - php7.0-imap
+      - php7.0-intl
       - php7.0-json
+      - php7.0-ldap
       - php7.0-mbstring
       - php7.0-mysql
       - php7.0-opcache
+      - php7.0-soap
       - php7.0-sqlite3
       - php7.0-xml
       - php7.0-zip
@@ -55,10 +58,13 @@
       - php7.0-fpm
       - php7.0-gd
       - php7.0-imap
+      - php7.0-intl
       - php7.0-json
+      - php7.0-ldap
       - php7.0-mbstring
       - php7.0-mysql
       - php7.0-opcache
+      - php7.0-soap
       - php7.0-sqlite3
       - php7.0-xml
       - php7.0-zip
@@ -80,6 +86,7 @@
       - php70u-fpm
       - php70u-gd
       - php70u-imap
+      - php70u-intl
       - php70u-json
       - php70u-ldap
       - php70u-mbstring
@@ -88,6 +95,7 @@
       - php70u-pdo
       - php70u-pear
       - php70u-pecl-apcu
+      - php70u-soap
       - php70u-xml
       - php70u-xmlrpc
   when: ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'
