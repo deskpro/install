@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -o errexit -o noclobber -o nounset -o pipefail
-
 MYSQL_PASS=$(head -c 4096 /dev/urandom | tr -cd [:alpha:])
 MYSQL_PASS=${MYSQL_PASS:0:32}
 
