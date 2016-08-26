@@ -7,7 +7,7 @@
 
   roles:
     - mysql
-    - cron
     - install
+    - cron
     - role: runonce
       runonce_action: remove
