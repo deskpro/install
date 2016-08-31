@@ -40,6 +40,16 @@
     mode=0777
     recurse=yes
 
+- name: Ensure dirs have the correct SELinux context
+  file:
+    path: "{{item}}"
+    state: directory
+    recurse: yes
+    setype: httpd_sys_rw_content_t
+  with_items:
+    - "{{deskpro_site_root}}/attachments/"
+    - "{{deskpro_site_root}}/var/"
+
 - name: Install DeskPRO upgrade script
   template:
     src=deskpro-vm-upgrade
