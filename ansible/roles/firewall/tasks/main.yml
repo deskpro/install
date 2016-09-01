@@ -1,6 +1,9 @@
 ---
+- include: iptables.yml
+  when: ansible_virtualization_type == 'openvz'
+
 - include: 'Debian.yml'
-  when: ansible_os_family == 'Debian'
+  when: ansible_os_family == 'Debian' and ansible_virtualization_type != 'openvz'
 
 - include: 'RedHat.yml'
-  when: ansible_os_family == 'RedHat'
+  when: ansible_os_family == 'RedHat' and ansible_virtualization_type != 'openvz'

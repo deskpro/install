@@ -1,0 +1,17 @@
+---
+- name: Try to enable the ip_tables kernel module
+  modprobe:
+    name: ip_tables
+  register: iptables_check
+  ignore_errors: yes
+
+- name: Install iptables template
+  template:
+    src: iptables.j2
+    dest: /etc/iptables.deskpro.rules
+  register: iptables_template
+  when: iptables_check | succeeded
+
+- name: Restore iptables
+  shell: iptables-restore < /etc/iptables.deskpro.rules
+  when: iptables_check | succeeded and iptables_template | changed
