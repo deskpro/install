@@ -76,15 +76,11 @@ EOT
 install_dependencies_debian() {
 	info_message -n 'Installing dependencies... '
 	(
-		local deb_url="https://s3.eu-central-1.amazonaws.com/deskpro/install/ansible-2.1.1.0-0-jessie.deb"
-		local deb_file=$(mktemp -t ansible-jessie-XXXX.deb)
+		$SUDO bash -c 'echo "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/debian-backports.list'
 
-		curl -L -s --show-error -o $deb_file $deb_url
 		$SUDO apt-get update
 		$SUDO apt-get install -y curl aptitude apt-transport-https
-		$SUDO dpkg -i $deb_file || $SUDO apt-get -fy install
-
-		rm -f $deb_file
+		$SUDO apt-get install -y -t jessie-backports ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
