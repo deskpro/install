@@ -1,12 +1,126 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 
-MYSQL_PASS=$(head -c 4096 /dev/urandom | tr -cd [:alpha:])
-MYSQL_PASS=${MYSQL_PASS:0:32}
+import json
+import os
+import random
+import urllib2
+import string
+import subprocess
+import time
+import uuid
 
-cd /root/deskpro-install/ansible
+try:
+    random = random.SystemRandom()
+except NotImplementedError:
+    pass
 
-sed -i "s/mysqlpasswordchangeme/\"$MYSQL_PASS\"/" group_vars/all
+FULL_LOG_FILE = '/root/first-run.log'
 
-ansible-playbook -i 127.0.0.1, first-run.yml > /root/first-run.log
 
-rm -f {{install_in_progress_filename}}
+def generate_log_id():
+    with open('{{deskpro_install_uuid_filename}}', 'w') as uuidfile:
+        uuidfile.write(str(uuid.uuid4()))
+
+
+def get_random_string(length):
+    chars = string.ascii_letters + string.digits
+
+    return ''.join(random.choice(chars) for _ in range(length))
+
+
+def replace_mysql_password(password):
+    filename = '/root/deskpro-install/ansible/group_vars/all'
+
+    with open(filename) as vars_file:
+        lines = vars_file.readlines()
+
+    with open(filename, 'w') as vars_file:
+        for line in lines:
+            vars_file.write(line.replace('mysqlpasswordchangeme', password))
+
+
+def get_ansible_facts():
+    # I know I can use the regular ansible api for this, but I'm not adding
+    # 50 extra lines just for that:
+    #
+    # http://docs.ansible.com/ansible/developing_api.html
+
+    process = subprocess.Popen(
+        ['ansible', '-m', 'setup', '-c', 'local', '--one-line', 'localhost'],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    stdout, _ = process.communicate()
+
+    response = json.loads(stdout.replace('localhost | SUCCESS => ', ''))
+    return response['ansible_facts']
+
+
+def log_post_json(action, data):
+    url = 'http://app-stats.deskpro-service.com/installer/virtual-machine/{}/{}'
+    with open('{{deskpro_install_uuid_filename}}') as uuidf:
+        log_id = uuidf.read()
+
+    request = urllib2.Request(url.format(log_id, action))
+
+    if isinstance(data, dict):
+        request.add_header('Content-Type', 'application/json')
+        data = json.dumps(data)
+
+    response = urllib2.urlopen(request, data)
+    return response.read()
+
+
+def log_install_start():
+    facts = get_ansible_facts()
+
+    log_post_json('start', {
+        'os': {
+            'name': facts['ansible_lsb']['description'],
+            'virtualization_role': facts['ansible_virtualization_role'],
+            'virtualization_type': facts['ansible_virtualization_type'],
+        },
+        'hardware': {
+            'cpus': facts['ansible_processor_count'],
+            'memory': facts['ansible_memtotal_mb'],
+        },
+    })
+
+
+def run_ansible():
+    with open(FULL_LOG_FILE, 'w') as outlog:
+        subprocess.check_call(
+            ['ansible-playbook', '-i', '127.0.0.1,', 'first-run.yml'],
+            stdout=outlog, stderr=outlog,
+            cwd='/root/deskpro-install/ansible',
+        )
+
+
+def main():
+    try:
+        generate_log_id()
+        new_password = get_random_string(32)
+        replace_mysql_password(new_password)
+
+        log_install_start()
+        start_time = time.time()
+
+        run_ansible()
+
+        log_post_json('success', {
+            'duration': time.time() - start_time
+        })
+    except:
+        log_post_json('error', {
+            'duration': time.time() - start_time,
+            'summary': 'VM install failed',
+        })
+    finally:
+        with open(FULL_LOG_FILE) as log:
+            log_post_json('logs', log.read())
+
+        os.unlink('{{install_in_progress_filename}}')
+
+
+if __name__ == '__main__':
+    main()
