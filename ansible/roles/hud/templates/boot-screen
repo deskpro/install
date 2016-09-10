@@ -280,8 +280,82 @@ class WaitInstallDialog(BaseDialog):
             self.next_window()
 
     def next_window(self):
-        widget = InfoDialog(self.loop)
-        self.loop.widget = widget
+        if os.path.isfile('{{install_failed_filename}}'):
+            self.loop.widget = InstallFailedDialog(self.loop)
+        else:
+            self.loop.widget = InfoDialog(self.loop)
+
+
+class InstallFailedDialog(BaseDialog):
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(InstallFailedDialog, self).__init__(widget, loop)
+
+        self.loop._unhandled_input = self.unhandled_input
+
+    def get_widget(self):
+        def text(string, map_name):
+            return urwid.AttrMap(urwid.Text(string, 'center'), map_name)
+
+        divider = urwid.Divider()
+
+        # Main "We failed" message
+        messages = [
+            text('The installation has failed!', 'heading'),
+            divider, divider,
+        ]
+
+        # Where are the logs
+        messages.extend([
+            text(
+                'The installation log has been written to:',
+                'text'
+            ),
+            divider,
+            text('/root/first-run.log', 'text'),
+            divider, divider,
+        ])
+
+        # Contact support
+        messages.extend([
+            text(
+                'We\'d like to get you up and running as quickly as '
+                'possible. Please contact support@deskpro.com for '
+                'assistance. Quote your reference number:',
+                'text'
+            ),
+            divider,
+            text(self.get_log_uuid(), 'text'),
+            divider, divider,
+
+        ])
+
+        # Utility buttons
+        messages.append(TabColumns(
+            [
+                self.button('Advanced menu', self.on_advanced_menu),
+                self.button('Login to server', self.on_login_to_server),
+            ],
+            2
+        ))
+
+        return TabPile(messages)
+
+    def get_log_uuid(self):
+        with open('{{deskpro_install_uuid_filename}}') as logf:
+            return logf.read().strip()
+
+    def on_login_to_server(self, button, user_data=None):
+        raise urwid.ExitMainLoop()
+
+    def on_advanced_menu(self, button, user_data=None):
+        self.loop.widget = AdvancedMenuDialog(self.loop)
+
+    def unhandled_input(self, key):
+        if key in ['q', 'Q']:
+            raise urwid.ExitMainLoop()
+
 
 
 class InfoDialog(BaseDialog):

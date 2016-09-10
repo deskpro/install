@@ -115,11 +115,16 @@ def main():
             'duration': time.time() - start_time,
             'summary': 'VM install failed',
         })
+
+        # Set up a marker for the failed install
+        with open('{{install_failed_filename}}', 'a'):
+            pass
     finally:
+        # Remove the file first to avoid network errors in the next call
+        os.unlink('{{install_in_progress_filename}}')
+
         with open(FULL_LOG_FILE) as log:
             log_post_json('logs', log.read())
-
-        os.unlink('{{install_in_progress_filename}}')
 
 
 if __name__ == '__main__':
