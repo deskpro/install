@@ -305,24 +305,37 @@ class InfoDialog(BaseDialog):
         ]
 
         # Connect to this address messages
-        messages.extend([
-            text(
-                'To access the helpdesk, go to the following address in your '
-                'browser:',
-                'text'
-            ),
-            divider,
-            text('http://{}/'.format(self.get_ip_address()), 'text'),
-            divider, divider,
-        ])
+        ip_address = self.get_ip_address()
+
+        if ip_address:
+            messages.extend([
+                text(
+                    'To access the helpdesk, go to the following address in '
+                    'your browser:',
+                    'text'
+                ),
+                divider,
+                text('http://{}/'.format(self.get_ip_address()), 'text'),
+                divider, divider,
+            ])
+        else:
+            messages.extend([
+                text(
+                    "I couldn't find a valid address for this machine. This "
+                    "may mean your network interfaces are down. Please read "
+                    "the next section on how to get help.",
+                    'text'
+                ),
+                divider,
+            ])
 
         # Help messages
         messages.extend([
             text('Need help?', 'heading'),
             divider,
             text(
-                'If you can\'t access the URL from your host machine, the '
-                'following article will help:',
+                'If you can\'t access the helpdesk from your host machine, '
+                ' the following article will help:',
                 'text'
             ),
             divider,
@@ -350,9 +363,12 @@ class InfoDialog(BaseDialog):
         return TabPile(messages)
 
     def get_ip_address(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        return s.getsockname()[0]
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            return s.getsockname()[0]
+        except socket.error:
+            return None
 
     def on_login_to_server(self, button, user_data=None):
         raise urwid.ExitMainLoop()
