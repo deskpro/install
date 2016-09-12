@@ -173,7 +173,10 @@ class BootDialog(BaseDialog):
             else:
                 self.loop.widget = WaitInstallDialog(self.loop)
         else:
-            self.loop.widget = RootPasswordDialog(self.loop)
+            if os.path.isfile('{{install_failed_filename}}'):
+                self.loop.widget = InstallFailedDialog(self.loop)
+            else:
+                self.loop.widget = RootPasswordDialog(self.loop)
 
 
 class RootPasswordDialog(BaseDialog):
