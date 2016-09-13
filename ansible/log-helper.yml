@@ -1,0 +1,8 @@
+---
+- name: Install the log helper
+  hosts: localhost
+  connection: local
+  sudo: yes
+
+  roles:
+    - log
