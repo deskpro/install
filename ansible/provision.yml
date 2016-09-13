@@ -18,4 +18,5 @@
     - security
     - role: runonce
       runonce_action: install
-    - log
+    - role: log
+      deskpro_install_log_type: virtual-machine
