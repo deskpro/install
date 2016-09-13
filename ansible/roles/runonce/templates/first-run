@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 
-import json
 import os
 import random
-import urllib2
 import string
 import subprocess
 import time
-import uuid
 
 try:
     random = random.SystemRandom()
@@ -69,7 +66,7 @@ def main():
 
         log_call(
             'error',
-            '--duration', str(time.time() - start_time)),
+            '--duration', str(time.time() - start_time),
             '--summary', 'VM install failed',
         )
     finally:
