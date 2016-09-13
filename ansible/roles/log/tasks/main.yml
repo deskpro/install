@@ -1,6 +1,6 @@
 ---
 - name: Install the log helper
   template:
-    src: deskpro-log-helper.j2
+    src: deskpro-log-helper.py.j2
     dest: /usr/local/bin/deskpro-log-helper
     mode: 0500
