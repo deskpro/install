@@ -106,7 +106,7 @@ install_dependencies_centos() {
 	info_message -n 'Installing dependencies... '
 	(
 		$SUDO yum install -y epel-release
-		$SUDO yum install -y curl jq ansible
+		$SUDO yum install -y curl jq redhat-lsb-core ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
