@@ -115,6 +115,8 @@ def build_parser():
         const=logging.INFO,
     )
 
+    parser.add_argument('--ignore-errors', action='store_true')
+
     subparsers = parser.add_subparsers()
 
     parser_start = subparsers.add_parser('start')
@@ -157,7 +159,11 @@ def main():
 
     logging.basicConfig(level=args.loglevel)
 
-    args.func(args)
+    try:
+        args.func(args)
+    except urllib2.URLError as e:
+        if not args.ignore_errors:
+            raise e
 
 
 if __name__ == '__main__':

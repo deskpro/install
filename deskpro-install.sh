@@ -11,8 +11,8 @@ SUDO=''
 UNBUFFER='stdbuf -i0 -o0 -e0'
 MYSQL_PASS=''
 FULL_LOG_FILE=''
-SUCCESS=false
 DISTRO='Unknown'
+LOG_HELPER="/usr/local/bin/deskpro-log-helper --ignore-errors"
 
 info_message() {
 	local no_newline=''
@@ -79,7 +79,7 @@ install_dependencies_debian() {
 		$SUDO bash -c 'echo "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/debian-backports.list'
 
 		$SUDO apt-get update
-		$SUDO apt-get install -y curl aptitude apt-transport-https
+		$SUDO apt-get install -y curl jq aptitude apt-transport-https
 		$SUDO apt-get install -y -t jessie-backports ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
@@ -92,7 +92,7 @@ install_dependencies_ubuntu() {
 		$SUDO apt-get install -y software-properties-common
 		$SUDO apt-add-repository -y ppa:ansible/ansible
 		$SUDO apt-get update
-		$SUDO apt-get install -y curl aptitude ansible
+		$SUDO apt-get install -y curl jq aptitude ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
@@ -106,7 +106,7 @@ install_dependencies_centos() {
 	info_message -n 'Installing dependencies... '
 	(
 		$SUDO yum install -y epel-release
-		$SUDO yum install -y curl ansible
+		$SUDO yum install -y curl jq ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
@@ -216,6 +216,12 @@ change_mysql_password() {
 	sed -i "s/mysqlpasswordchangeme/\"$MYSQL_PASS\"/" $ANSIBLE_DIR/group_vars/all
 }
 
+run_ansible() {
+	local playbook=$1
+
+	$SUDO ansible-playbook -i 127.0.0.1, $playbook 2>&1 | $UNBUFFER tee --append ${FULL_LOG_FILE}
+}
+
 install_deskpro() {
 	cd $ANSIBLE_DIR
 
@@ -223,24 +229,31 @@ install_deskpro() {
 	ansible-galaxy install -r requirements.txt -i -p roles >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 
-	$SUDO ansible-playbook -i 127.0.0.1, full-install.yml 2>&1 | $UNBUFFER tee --append ${FULL_LOG_FILE}
+	run_ansible log-helper.yml
+
+	$LOG_HELPER start
+	SECONDS=0
+
+	if run_ansible full-install.yml ; then
+		$LOG_HELPER success --duration $SECONDS
+	else
+		local error_json=$(tail ${FULL_LOG_FILE} | grep ^fatal: | sed 's/.*FAILED! => //')
+		local error_message=$(jq -r .msg)
+		$LOG_HELPER failure --duration $SECONDS --summary "${error_message:0:100}"
+	fi
 }
+
 
 upload_logs() {
 	sed -i "s/$MYSQL_PASS/**********/g" $FULL_LOG_FILE
 
-	curl https://log.deskpro.com/install \
-		--silent -k --show-error \
-		-F log_file=@$FULL_LOG_FILE \
-		-F success=$SUCCESS \
-		-F distro="$DISTRO"
+	$LOG_HELPER log --file $FULL_LOG_FILE
 }
 
 install_failed() {
 	set +o errexit
 
 	check_memory
-	upload_logs
 
 	cat <<-EOT
 		The installation has failed.
@@ -261,9 +274,6 @@ main() {
 	change_mysql_password
 	install_deskpro
 
-
-	SUCCESS=true
-	upload_logs
 	check_memory
 
 	if [ $ARG_QUIET -eq 0 ]; then
@@ -281,5 +291,6 @@ main() {
 }
 
 trap install_failed ERR
+trap upload_logs EXIT
 
 main "$@"
