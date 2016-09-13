@@ -12,7 +12,7 @@ deskpro_run_once_cron_name: "deskpro-run-once"
 install_failed_filename: "/root/.install-failed"
 first_run_filename: "/root/.this-is-the-first-run"
 
-deskpro_install_uuid_filename: "/root/.deskpro-install-uuid"
+deskpro_install_uuid_filename: ".deskpro-install-uuid"
 
 install_in_progress_filename: "/root/.install-in-progress"
 

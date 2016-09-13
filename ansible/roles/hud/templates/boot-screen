@@ -346,7 +346,8 @@ class InstallFailedDialog(BaseDialog):
         return TabPile(messages)
 
     def get_log_uuid(self):
-        with open('{{deskpro_install_uuid_filename}}') as logf:
+        path = os.path.expanduser('~/{{deskpro_install_uuid_filename}}')
+        with open(path) as logf:
             return logf.read().strip()
 
     def on_login_to_server(self, button, user_data=None):
