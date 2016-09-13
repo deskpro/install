@@ -17,7 +17,8 @@ def get_ansible_facts():
 
     process = subprocess.Popen(
         ['ansible', '-m', 'setup', '-c', 'local', '--one-line', 'localhost'],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        env=dict(os.environ, ANSIBLE_NOCOLOR='false'),
     )
 
     stdout, _ = process.communicate()
