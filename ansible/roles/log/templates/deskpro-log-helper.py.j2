@@ -133,6 +133,8 @@ def build_parser():
     parser_log.add_argument('--file', required=True)
     parser_log.set_defaults(func=log_upload)
 
+    return parser
+
 
 def log_post_json(log_id, action, data):
     log_type = '{{deskpro_install_log_type}}'

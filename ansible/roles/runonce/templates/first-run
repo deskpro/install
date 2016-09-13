@@ -14,12 +14,8 @@ try:
 except NotImplementedError:
     pass
 
+
 FULL_LOG_FILE = '/root/first-run.log'
-
-
-def generate_log_id():
-    with open('{{deskpro_install_uuid_filename}}', 'w') as uuidfile:
-        uuidfile.write(str(uuid.uuid4()))
 
 
 def get_random_string(length):
@@ -39,52 +35,10 @@ def replace_mysql_password(password):
             vars_file.write(line.replace('mysqlpasswordchangeme', password))
 
 
-def get_ansible_facts():
-    # I know I can use the regular ansible api for this, but I'm not adding
-    # 50 extra lines just for that:
-    #
-    # http://docs.ansible.com/ansible/developing_api.html
-
-    process = subprocess.Popen(
-        ['ansible', '-m', 'setup', '-c', 'local', '--one-line', 'localhost'],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-
-    stdout, _ = process.communicate()
-
-    response = json.loads(stdout.replace('localhost | SUCCESS => ', ''))
-    return response['ansible_facts']
-
-
-def log_post_json(action, data):
-    url = 'http://app-stats.deskpro-service.com/installer/virtual-machine/{}/{}'
-    with open('{{deskpro_install_uuid_filename}}') as uuidf:
-        log_id = uuidf.read()
-
-    request = urllib2.Request(url.format(log_id, action))
-
-    if isinstance(data, dict):
-        request.add_header('Content-Type', 'application/json')
-        data = json.dumps(data)
-
-    response = urllib2.urlopen(request, data)
-    return response.read()
-
-
-def log_install_start():
-    facts = get_ansible_facts()
-
-    log_post_json('start', {
-        'os': {
-            'name': facts['ansible_lsb']['description'],
-            'virtualization_role': facts['ansible_virtualization_role'],
-            'virtualization_type': facts['ansible_virtualization_type'],
-        },
-        'hardware': {
-            'cpus': facts['ansible_processor_count'],
-            'memory': facts['ansible_memtotal_mb'],
-        },
-    })
+def log_call(*args):
+    command = ['/usr/local/bin/deskpro-log-helper']
+    command.extend(args)
+    subprocess.call(command)
 
 
 def run_ansible():
@@ -98,34 +52,31 @@ def run_ansible():
 
 def main():
     try:
-        generate_log_id()
         new_password = get_random_string(32)
         replace_mysql_password(new_password)
 
-        log_install_start()
+        log_call('start')
+
         start_time = time.time()
 
         run_ansible()
 
-        log_post_json('success', {
-            'duration': time.time() - start_time
-        })
+        log_call('success', '--duration', str(time.time() - start_time))
     except:
         # Set up a marker for the failed install
         with open('{{install_failed_filename}}', 'a'):
             pass
 
-        log_post_json('error', {
-            'duration': time.time() - start_time,
-            'summary': 'VM install failed',
-        })
+        log_call(
+            'error',
+            '--duration', str(time.time() - start_time)),
+            '--summary', 'VM install failed',
+        )
     finally:
         # Remove the file first to avoid network errors in the next call
         os.unlink('{{install_in_progress_filename}}')
 
-        with open(FULL_LOG_FILE) as log:
-            log_post_json('logs', log.read())
-
+        log_call('log', '--file', FULL_LOG_FILE)
 
 if __name__ == '__main__':
     main()
