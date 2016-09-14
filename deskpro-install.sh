@@ -11,24 +11,16 @@ SUDO=''
 UNBUFFER='stdbuf -i0 -o0 -e0'
 MYSQL_PASS=''
 FULL_LOG_FILE=''
-DISTRO='Unknown'
 LOG_HELPER="/usr/local/bin/deskpro-log-helper --ignore-errors"
 
 info_message() {
-	local no_newline=''
-
-	if [ "$1" == "-n" ]; then
-		no_newline="-n"
-		shift
-	fi
-
 	if [ $ARG_QUIET -eq 0 ]; then
-		echo $no_newline $1
+		echo "$@"
 	fi
 }
 
 parse_args() {
-	local params=$(getopt -o 'hl:q' -l 'help,log:,quiet' --name "$0" -- "$@")
+	local -r params=$(getopt -o 'hl:q' -l 'help,log:,quiet' --name "$0" -- "$@")
 	eval set -- "$params"
 
 	while true; do
@@ -56,7 +48,7 @@ parse_args() {
 	done
 
 	if [ -z "$FULL_LOG_FILE" ]; then
-		local log_file=$(mktemp -t install-XXXXXXXX.log)
+		local -r log_file=$(mktemp -t install-XXXXXXXX.log)
 		FULL_LOG_FILE=$log_file
 	fi
 }
@@ -117,15 +109,15 @@ install_dependencies_rhel() {
 }
 
 detect_repository() {
-	local current_dir=$(dirname $0)
+	local -r current_dir=$(dirname "$0")
 	ANSIBLE_DIR=$current_dir/ansible
 
-	if [ ! -e $ANSIBLE_DIR ]; then
-		local tmp_dir=$(mktemp -dt dpbuild-XXXXXXXX)
+	if [ ! -e "$ANSIBLE_DIR" ]; then
+		local -r tmp_dir=$(mktemp -dt dpbuild-XXXXXXXX)
 
 		info_message -n 'Downloading ansible scripts... '
 
-		cd $tmp_dir
+		cd "$tmp_dir"
 		curl -L https://github.com/DeskPRO/install/archive/master.tar.gz 2>>"${FULL_LOG_FILE}" | tar xz
 
 		info_message 'Done'
@@ -159,13 +151,10 @@ detect_distro() {
 				exit 1
 		esac
 
-		DISTRO="$PRETTY_NAME"
 	elif [ -e /etc/redhat-release ]; then
 		install_dependencies_rhel
-		DISTRO=$(cat /etc/redhat-release)
 	elif [ -e /etc/debian_version ]; then
 		install_dependencies_debian
-		DISTRO=$(cat /etc/debian_version)
 	else
 		echo 'Unknown Linux distribution'
 		exit 1
@@ -195,7 +184,7 @@ check_memory() {
 		return
 	fi
 
-	local total_mem=$(awk '/^MemTotal/ { print $2 }' /proc/meminfo)
+	local -r total_mem=$(awk '/^MemTotal/ { print $2 }' /proc/meminfo)
 
 	if [ "$total_mem" -lt 1000000 ]; then
 		cat <<-EOT
@@ -210,20 +199,20 @@ check_memory() {
 }
 
 change_mysql_password() {
-	MYSQL_PASS=$(head -c 4096 /dev/urandom | tr -cd [:alpha:])
+	MYSQL_PASS=$(head -c 4096 /dev/urandom | tr -cd '[:alpha:]')
 	MYSQL_PASS=${MYSQL_PASS:0:32}
 
-	sed -i "s/mysqlpasswordchangeme/\"$MYSQL_PASS\"/" $ANSIBLE_DIR/group_vars/all
+	sed -i "s/mysqlpasswordchangeme/\"$MYSQL_PASS\"/" "$ANSIBLE_DIR/group_vars/all"
 }
 
 run_ansible() {
 	local playbook=$1
 
-	$SUDO ansible-playbook -i 127.0.0.1, $playbook 2>&1 | $UNBUFFER tee --append ${FULL_LOG_FILE}
+	$SUDO ansible-playbook -i 127.0.0.1, "$playbook" 2>&1 | $UNBUFFER tee --append "$FULL_LOG_FILE"
 }
 
 install_deskpro() {
-	cd $ANSIBLE_DIR
+	cd "$ANSIBLE_DIR"
 
 	info_message -n 'Installing role dependencies... '
 	ansible-galaxy install -r requirements.txt -i -p roles >>"${FULL_LOG_FILE}" 2>&1
@@ -237,17 +226,17 @@ install_deskpro() {
 	if run_ansible full-install.yml ; then
 		$LOG_HELPER success --duration $SECONDS
 	else
-		local error_json=$(tail ${FULL_LOG_FILE} | grep ^fatal: | sed 's/.*FAILED! => //')
-		local error_message=$(jq -r .msg <<< $error_json)
+		local -r error_json=$(tail "$FULL_LOG_FILE" | grep ^fatal: | sed 's/.*FAILED! => //')
+		local -r error_message=$(jq -r .msg <<< $error_json)
 		$LOG_HELPER failure --duration $SECONDS --summary "${error_message:0:100}"
 	fi
 }
 
 
 upload_logs() {
-	sed -i "s/$MYSQL_PASS/**********/g" $FULL_LOG_FILE
+	sed -i "s/$MYSQL_PASS/**********/g" "$FULL_LOG_FILE"
 
-	$LOG_HELPER log --file $FULL_LOG_FILE
+	$LOG_HELPER log --file "$FULL_LOG_FILE"
 }
 
 install_failed() {
@@ -277,7 +266,7 @@ main() {
 	check_memory
 
 	if [ $ARG_QUIET -eq 0 ]; then
-		local ip=$(curl -s https://api.ipify.org)
+		local -r ip=$(curl -s https://api.ipify.org)
 
 		cat <<-EOT
 			All done! To start using your instance, point your browser
