@@ -238,7 +238,7 @@ install_deskpro() {
 		$LOG_HELPER success --duration $SECONDS
 	else
 		local error_json=$(tail ${FULL_LOG_FILE} | grep ^fatal: | sed 's/.*FAILED! => //')
-		local error_message=$(jq -r .msg)
+		local error_message=$(jq -r .msg <<< $error_json)
 		$LOG_HELPER failure --duration $SECONDS --summary "${error_message:0:100}"
 	fi
 }
