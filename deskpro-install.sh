@@ -11,11 +11,19 @@ SUDO=''
 UNBUFFER='stdbuf -i0 -o0 -e0'
 MYSQL_PASS=''
 FULL_LOG_FILE=''
-LOG_HELPER="/usr/local/bin/deskpro-log-helper --ignore-errors"
+LOG_HELPER="/usr/local/bin/deskpro-log-helper"
+LOG_COMMAND="$LOG_HELPER --ignore-errors"
+DISTRO='Unknown'
 
 info_message() {
 	if [ $ARG_QUIET -eq 0 ]; then
 		echo "$@"
+	fi
+}
+
+log_step() {
+	if [ ! -z "$FULL_LOG_FILE" ]; then
+		echo "[Executing $1]" >> "$FULL_LOG_FILE"
 	fi
 }
 
@@ -109,6 +117,8 @@ install_dependencies_rhel() {
 }
 
 detect_repository() {
+	log_step "detect_repository"
+
 	local -r current_dir=$(dirname "$0")
 	ANSIBLE_DIR=$current_dir/ansible
 
@@ -127,8 +137,12 @@ detect_repository() {
 }
 
 detect_distro() {
+	log_step "detect_distro"
+
 	if [ -e /etc/os-release ]; then
 		. /etc/os-release
+
+		DISTRO="$PRETTY_NAME"
 
 		case $ID in
 			fedora)
@@ -150,10 +164,11 @@ detect_distro() {
 				echo 'Unknown Linux distribution'
 				exit 1
 		esac
-
 	elif [ -e /etc/redhat-release ]; then
+		DISTRO=$(cat /etc/redhat-release)
 		install_dependencies_rhel
 	elif [ -e /etc/debian_version ]; then
+		DISTRO=$(cat /etc/debian_version)
 		install_dependencies_debian
 	else
 		echo 'Unknown Linux distribution'
@@ -162,6 +177,8 @@ detect_distro() {
 }
 
 check_root() {
+	log_step "check_root"
+
 	if [ "$(id -u)" != "0" ]; then
 		SUDO='sudo'
 
@@ -180,6 +197,8 @@ check_root() {
 }
 
 check_memory() {
+	log_step "check_memory"
+
 	if [ $ARG_QUIET -ne 0 ]; then
 		return
 	fi
@@ -199,10 +218,14 @@ check_memory() {
 }
 
 change_mysql_password() {
+	log_step "change_mysql_password"
+
 	MYSQL_PASS=$(head -c 4096 /dev/urandom | tr -cd '[:alpha:]')
 	MYSQL_PASS=${MYSQL_PASS:0:32}
 
-	sed -i "s/mysqlpasswordchangeme/\"$MYSQL_PASS\"/" "$ANSIBLE_DIR/group_vars/all"
+	(
+		sed -i "s/mysqlpasswordchangeme/$MYSQL_PASS/" "$ANSIBLE_DIR/group_vars/all"
+	) >>"${FULL_LOG_FILE}" 2>&1
 }
 
 run_ansible() {
@@ -212,6 +235,8 @@ run_ansible() {
 }
 
 install_deskpro() {
+	log_step "install_deskpro"
+
 	cd "$ANSIBLE_DIR"
 
 	info_message -n 'Installing role dependencies... '
@@ -220,27 +245,46 @@ install_deskpro() {
 
 	run_ansible log-helper.yml
 
-	$LOG_HELPER start
+	$LOG_COMMAND start
 	SECONDS=0
 
 	if run_ansible full-install.yml ; then
-		$LOG_HELPER success --duration $SECONDS
+		$LOG_COMMAND success --duration $SECONDS
 	else
 		local -r error_json=$(tail "$FULL_LOG_FILE" | grep ^fatal: | sed 's/.*FAILED! => //')
 		local -r error_message=$(jq -r .msg <<< $error_json)
-		$LOG_HELPER failure --duration $SECONDS --summary "${error_message:0:100}"
+		$LOG_COMMAND failure --duration $SECONDS --summary "${error_message:0:100}"
 	fi
 }
 
 
 upload_logs() {
-	sed -i "s/$MYSQL_PASS/**********/g" "$FULL_LOG_FILE"
+	sed -i "s/$MYSQL_PASS/**********/g" "$FULL_LOG_FILE" || true
 
-	$LOG_HELPER log --file "$FULL_LOG_FILE"
+	if [ -e "$LOG_HELPER" ]; then
+		$LOG_COMMAND log --file "$FULL_LOG_FILE"
+	else
+		local -r uuid=$(cat /proc/sys/kernel/random/uuid)
+		local -r base_url="http://app-stats.deskpro-service.com/installer/installer"
+
+		local -r kernel="$(uname -a)"
+		local -r distro="$DISTRO"
+
+		if command -v curl >/dev/null 2>&1 ; then
+			curl -so /dev/null -X POST "$base_url/$uuid/start" -F kernel="$kernel" -F distro="$distro"
+			curl -so /dev/null -X POST "$base_url/$uuid/error"
+			curl -so /dev/null -X POST "$base_url/$uuid/logs" --data-binary @"$FULL_LOG_FILE"
+		elif command -v wget >/dev/null 2>&1 ; then
+			wget -qO /dev/null "$base_url/$uuid/start" --post-data "kernel=$kernel&distro=$distro"
+			wget -qO /dev/null --method=POST "$base_url/$uuid/error"
+			wget -qO /dev/null "$base_url/$uuid/logs" --post-file "$FULL_LOG_FILE"
+		fi
+	fi
+
 }
 
 install_failed() {
-	set +o errexit
+	set +o errexit +o errtrace
 
 	check_memory
 
