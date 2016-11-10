@@ -1,4 +1,10 @@
 ---
+- name: Install the HTTPS APT transport
+  apt:
+    name: apt-transport-https
+    update_cache: yes
+    cache_valid_time: 86400
+
 - name: Install the Elasticsearch repo
   apt_repository: repo="deb https://packages.elastic.co/elasticsearch/2.x/debian stable main"
 

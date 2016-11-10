@@ -29,7 +29,7 @@ log_step() {
 
 log_message() {
 	if [ ! -z "$FULL_LOG_FILE" ]; then
-		echo "[INFO $(date %+s)] $1" >> "$FULL_LOG_FILE"
+		echo "[INFO $(date +%s)] $1" >> "$FULL_LOG_FILE"
 	fi
 }
 
