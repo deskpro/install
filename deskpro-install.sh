@@ -27,6 +27,12 @@ log_step() {
 	fi
 }
 
+log_message() {
+	if [ ! -z "$FULL_LOG_FILE" ]; then
+		echo "[INFO $(date %+s)] $1" >> "$FULL_LOG_FILE"
+	fi
+}
+
 parse_args() {
 	local -r params=$(getopt -o 'hl:q' -l 'help,log:,quiet' --name "$0" -- "$@")
 	eval set -- "$params"
@@ -119,11 +125,13 @@ install_dependencies_rhel() {
 detect_repository() {
 	log_step "detect_repository"
 
-	local -r current_dir=$(dirname "$0")
+	local -r current_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 	ANSIBLE_DIR=$current_dir/ansible
 
 	if [ ! -e "$ANSIBLE_DIR" ]; then
 		local -r tmp_dir=$(mktemp -dt dpbuild-XXXXXXXX)
+
+		log_message "Using tmp dir $tmp_dir"
 
 		info_message -n 'Downloading ansible scripts... '
 
@@ -133,6 +141,8 @@ detect_repository() {
 		info_message 'Done'
 
 		ANSIBLE_DIR=$tmp_dir/install-master/ansible
+	else
+		log_message "Using existing ansible dir at $ANSIBLE_DIR"
 	fi
 }
 
