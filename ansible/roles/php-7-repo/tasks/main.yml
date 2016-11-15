@@ -78,6 +78,9 @@
 
 - name: Set correct facts for IUS packages
   set_fact:
+    php_extension_conf_paths:
+      - /etc/php.d
+      - /etc/php-zts.d
     php_fpm_pool_group: nginx
     php_fpm_pool_user: php-fpm
     php_packages:
