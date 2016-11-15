@@ -1,4 +1,9 @@
 ---
+- name: Install SELinux bindings
+  yum:
+    name: libselinux-python
+  when: ansible_distribution == 'CentOS'
+
 - name: Install the log helper
   template:
     src: deskpro-log-helper.py.j2
