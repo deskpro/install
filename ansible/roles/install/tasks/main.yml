@@ -6,8 +6,8 @@
 
 - name: Run install command
   command: "/usr/bin/php {{deskpro_site_root}}/bin/install --profile {{deskpro_profile_path}} -n -x file_integrity"
-  sudo: yes
-  sudo_user: deskpro
+  become: yes
+  become_user: deskpro
 
 - name: Delete profile
   file:
@@ -22,8 +22,8 @@
 
 - name: Populate elasticsearch
   command: /usr/bin/php {{deskpro_site_root}}/bin/console dp:elastica:populate --reset
-  sudo: yes
-  sudo_user: deskpro
+  become: yes
+  become_user: deskpro
 
 - name: Turn on url rewrite
   command: mysql -u deskpro -p{{deskpro_database_user_password}} -e "INSERT INTO `settings` (`name`, `value`) VALUES ('core.rewrite_urls', '1');" deskpro
