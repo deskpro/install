@@ -10,7 +10,8 @@
     - php
     - nginx
     - elasticsearch
-    - deskpro
+    - role: deskpro
+      deskpro_install_type: virtual-machine
     - firewall
     - hud
     - grub

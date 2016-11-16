@@ -71,3 +71,9 @@
     mode=0755
     owner=root
     group=root
+
+- name: Install provisioning html under a virtual machine install
+  template:
+    src: installing.html
+    dest: "{{deskpro_site_root}}/www/"
+  when: deskpro_install_type == 'virtual-machine'

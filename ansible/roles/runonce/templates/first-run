@@ -73,6 +73,9 @@ def main():
         # Remove the file first to avoid network errors in the next call
         os.unlink('{{install_in_progress_filename}}')
 
+        # Remove the "maintenance" html page
+        os.unlink('{{deskpro_site_root}}/www/installing.html')
+
         log_call('log', '--file', FULL_LOG_FILE)
 
 if __name__ == '__main__':
