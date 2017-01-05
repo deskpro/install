@@ -14,6 +14,7 @@ FULL_LOG_FILE=''
 LOG_HELPER="/usr/local/bin/deskpro-log-helper"
 LOG_COMMAND="$LOG_HELPER --ignore-errors"
 DISTRO='Unknown'
+SKIP_LOGS=false
 
 info_message() {
 	if [ $ARG_QUIET -eq 0 ]; then
@@ -227,6 +228,70 @@ check_memory() {
 	fi
 }
 
+check_software() {
+	local installed_software=()
+
+	local -r test_software=(
+		"mysql:"
+		"elasticsearch:/usr/share/elasticsearch/bin/elasticsearch"
+		"php:"
+		"nginx:/usr/sbin/nginx"
+	)
+
+	for entry in "${test_software[@]}" ; do
+		IFS=":" read -ra software <<< "$entry"
+
+		if command -v "${software[0]}" >/dev/null 2>&1 ; then
+			installed_software+=("${software[0]}")
+		else
+			for path in "${software[@]:1}" ; do
+				if test -e "$path"; then
+					installed_software+=("${software[0]}")
+					break
+				fi
+			done
+		fi
+	done
+
+	if [ "${#installed_software[@]}" -ne "0" ]; then
+		cat <<-EOT
+			This machine currently contains software that should be installed
+			by the installer itself. This is not supported and might lead to
+			errors during the process. The following programs are already
+			installed:
+
+		EOT
+
+		for software in "${installed_software[@]}"; do
+			echo -e "\t* $software"
+		done
+
+		cat <<-EOT
+
+			It is recommended that you start with a clean machine. If you
+			continue, the installation might fail.
+
+		EOT
+
+		if ! confirm "Do you wish to proceed?" ; then
+			SKIP_LOGS=true
+			exit
+		fi
+	fi
+}
+
+function confirm() {
+	local -r message="$1"
+	while true; do
+		read -r -p "$message [y/n] " answer
+		case "$answer" in
+			[Yy][Ee][Ss]|[Yy] ) return 0 ;;
+			[Nn][Oo]|[Nn] ) return 1 ;;
+			* ) echo "Please answer yes or no" ;;
+		esac
+	done
+}
+
 change_mysql_password() {
 	log_step "change_mysql_password"
 
@@ -262,14 +327,19 @@ install_deskpro() {
 		$LOG_COMMAND success --duration $SECONDS
 	else
 		local -r error_json=$(tail "$FULL_LOG_FILE" | grep ^fatal: | sed 's/.*FAILED! => //')
-		local -r error_message=$(jq -r .msg <<< $error_json)
+		local -r error_message=$(jq -r .msg <<< "$error_json")
 		$LOG_COMMAND failure --duration $SECONDS --summary "${error_message:0:100}"
 	fi
 }
 
-
 upload_logs() {
-	sed -i "s/$MYSQL_PASS/**********/g" "$FULL_LOG_FILE" || true
+	if [ "$SKIP_LOGS" = "true" ]; then
+		return 0
+	fi
+
+	if [ ! -z "$MYSQL_PASS" ]; then
+		sed -i "s/$MYSQL_PASS/**********/g" "$FULL_LOG_FILE" || true
+	fi
 
 	if [ -e "$LOG_HELPER" ]; then
 		$LOG_COMMAND log --file "$FULL_LOG_FILE"
@@ -312,6 +382,7 @@ main() {
 	parse_args "$@"
 	check_root
 	check_memory
+	check_software
 	detect_distro
 	detect_repository
 	change_mysql_password
