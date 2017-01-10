@@ -191,7 +191,7 @@ check_root() {
 	log_step "check_root"
 
 	if [ "$(id -u)" != "0" ]; then
-		SUDO='sudo'
+		SUDO='sudo -E'
 
 		if [ $ARG_QUIET -ne 0 ]; then
 			return
