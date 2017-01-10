@@ -86,7 +86,7 @@ install_dependencies_debian() {
 		$SUDO bash -c 'echo "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/debian-backports.list'
 
 		$SUDO apt-get update
-		$SUDO apt-get install -y curl jq aptitude apt-transport-https
+		$SUDO apt-get install -y curl jq aptitude apt-transport-https lsb-release
 		$SUDO apt-get install -y -t jessie-backports ansible
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
