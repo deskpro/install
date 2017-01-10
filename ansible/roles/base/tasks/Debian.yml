@@ -5,24 +5,20 @@
 - name: Install packages
   apt: name={{item}} state=present
   with_items:
+    - cron
     - curl
+    - default-jre-headless
     - mariadb-server
     - nginx
-    - default-jre-headless
+    - postfix
     - python-mysqldb
     - python-pip
     - python-virtualenv
-    - postfix
     - ufw
     - unzip
 
-- name: debug packages
-  apt:
-    name: "{{item}}"
-  with_items:
-    - curl
-    - tmux
-    - htop
-    - vim
-    - strace
-    - ltrace
+- name: Ensure cron is running
+  service:
+    name: cron
+    state: started
+    enabled: yes
