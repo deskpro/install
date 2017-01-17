@@ -126,8 +126,15 @@ install_dependencies_rhel() {
 detect_repository() {
 	log_step "detect_repository"
 
-	local -r current_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-	ANSIBLE_DIR=$current_dir/ansible
+	local current_dir=""
+
+	if [ -t 0 ]; then
+		# we only need to change this if we're running from a file, and not if
+		# from a `curl | bash` situation
+		current_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+	fi
+
+	ANSIBLE_DIR="$current_dir/ansible"
 
 	if [ ! -e "$ANSIBLE_DIR" ]; then
 		local -r tmp_dir=$(mktemp -dt dpbuild-XXXXXXXX)
