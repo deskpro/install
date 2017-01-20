@@ -4,3 +4,6 @@ ansible/roles/nbz4live.php-fpm/
 
 *.swp
 *.swo
+
+.kitchen/
+Gemfile.lock
