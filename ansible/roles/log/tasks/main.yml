@@ -5,7 +5,7 @@
   with_items:
     - libselinux-python
     - libsemanage-python
-  when: ansible_distribution == 'CentOS'
+  when: ansible_os_family == 'RedHat'
 
 - name: Install the log helper
   template:
