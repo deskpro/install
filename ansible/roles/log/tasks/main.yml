@@ -1,7 +1,10 @@
 ---
 - name: Install SELinux bindings
   yum:
-    name: libselinux-python
+    name: "{{item}}"
+  with_items:
+    - libselinux-python
+    - libsemanage-python
   when: ansible_distribution == 'CentOS'
 
 - name: Install the log helper
