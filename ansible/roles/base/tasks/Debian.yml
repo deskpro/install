@@ -16,6 +16,7 @@
     - python-virtualenv
     - ufw
     - unzip
+    - wkhtmltopdf
 
 - name: Ensure cron is running
   service:
