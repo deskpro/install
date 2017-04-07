@@ -6,7 +6,7 @@ playbooks can currently be used with:
 
 * Ubuntu 14.04
 * Ubuntu 16.04
-* Debian 8.1
+* Debian Jessie
 * CentOS 7
 
 ## Using scripts
@@ -42,8 +42,6 @@ able to use `sudo`.
 
 ## DeskPRO Virtual Machines
 
-You can use the links below to download ready made virtual machines with
-DeskPRO pre-installed for:
-
-- [Virtual Box](https://s3.eu-central-1.amazonaws.com/deskpro/DeskPRO-Helpdesk-VirtualBox.ova)
-- [VMWare](https://s3.eu-central-1.amazonaws.com/deskpro/DeskPRO-Helpdesk-VMWare.zip)
+Instead of installing manually, it's also possible to download a virtual
+machine with DeskPRO already installed. Check out our [Downloads
+page](https://www.deskpro.com/on-premise/) for more information.
