@@ -12,6 +12,17 @@ import sys
 import urwid
 
 
+class NetworkError(RuntimeError):
+    pass
+
+
+class NoLinkError(NetworkError):
+    pass
+
+
+class NoRouteError(NetworkError):
+    pass
+
 
 class TabPile(urwid.Pile):
     # this is a copy of the original keypress function. The only change is that
@@ -496,16 +507,24 @@ class AdvancedMenuDialog(BaseDialog):
 
 class NetworkMixin(object):
     def get_net_data(self):
-        # get just the first available address, should be enough for now
-        eth0_data = netifaces.ifaddresses('eth0')[netifaces.AF_INET][0]
+        for interface in netifaces.interfaces():
+            if interface == 'lo':
+                continue
+            ifdata = netifaces.ifaddresses(interface)
 
-        ip = eth0_data['addr']
-        netmask = eth0_data['netmask']
-        gateway = self.get_gateway()
-        name_servers = self.get_name_servers()
-        mode = self.get_interface_mode()
+            for address in ifdata.get(netifaces.AF_INET, []):
+                try:
+                    ip = address['addr']
+                    netmask = address['netmask']
+                    gateway = self.get_gateway()
+                    name_servers = self.get_name_servers()
+                    mode = self.get_interface_mode()
 
-        return (ip, netmask, gateway, name_servers, mode)
+                    return (ip, netmask, gateway, name_servers, mode)
+                except KeyError:
+                    continue
+
+        raise NoLinkError()
 
     def get_gateway(self):
         output = subprocess.check_output(['route', '-n'])
@@ -514,7 +533,7 @@ class NetworkMixin(object):
             if data[0] == '0.0.0.0':
                 return data[1]
 
-        return 'No route'
+        raise NoRouteError()
 
     def get_name_servers(self):
         nameserver_re = re.compile(r'^nameserver\s+(.*)$')
@@ -548,22 +567,40 @@ class NetworkDialog(BaseDialog, NetworkMixin):
         super(NetworkDialog, self).__init__(widget, loop, 'Networking')
 
     def get_widget(self):
-        ip, netmask, gateway, name_servers, mode = self.get_net_data()
-
         lines = []
 
-        # network information
-        net_info = TabPile([
-            self.info_row('IP address:', ip),
-            self.info_row('Netmask:', netmask),
-            self.info_row('Default gateway:', gateway),
-            self.info_row('DNS Server(s):', ' '.join(name_servers)),
-        ])
-        lines.append(urwid.LineBox(net_info, 'Current network information'))
+        try:
+            ip, netmask, gateway, name_servers, mode = self.get_net_data()
 
-        lines.append(urwid.Divider())
+            # network information
+            net_info = TabPile([
+                self.info_row('IP address:', ip),
+                self.info_row('Netmask:', netmask),
+                self.info_row('Default gateway:', gateway),
+                self.info_row('DNS Server(s):', ' '.join(name_servers)),
+            ])
 
-        lines.append(urwid.Text('Current mode: ' + mode))
+            lines.append(urwid.LineBox(
+                net_info, 'Current network information'
+            ))
+
+            lines.append(urwid.Divider())
+
+            lines.append(urwid.Text('Current mode: ' + mode))
+        except NoLinkError:
+            error_message = urwid.Text(
+                "There are no configured network interfaces. If you don't "
+                "have a DHCP server on the machine's network, use the Static "
+                "IP configuration menu."
+            )
+            lines.append(urwid.AttrMap(error_message, 'errormsg'))
+        except NoRouteError:
+            error_message = urwid.Text(
+                "There's no default gateway configured. Please check your "
+                "DHCP server's settings or use the State IP configuration "
+                "menu."
+            )
+            lines.append(urwid.AttrMap(error_message, 'errormsg'))
 
         lines.append(urwid.Divider())
 
@@ -617,7 +654,10 @@ class NetworkDialog(BaseDialog, NetworkMixin):
 
 class StaticIPDialog(BaseDialog, NetworkMixin):
     def __init__(self, loop):
-        ip, netmask, gateway, name_servers, mode = self.get_net_data()
+        try:
+            ip, netmask, gateway, name_servers, mode = self.get_net_data()
+        except NetworkError:
+            ip, netmask, gateway, name_servers, mode = '', '', '', '', ''
 
         self.net_data = {
             'ip': ip,
