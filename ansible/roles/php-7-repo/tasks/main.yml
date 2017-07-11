@@ -28,6 +28,7 @@
     php_packages:
       - libpcre3-dev
       - php7.0-apcu
+      - php7.0-bcmath
       - php7.0-cli
       - php7.0-common
       - php7.0-curl
@@ -52,6 +53,7 @@
     php_packages:
       - libpcre3-dev
       - php7.0-apcu
+      - php7.0-bcmath
       - php7.0-cli
       - php7.0-common
       - php7.0-curl
@@ -84,6 +86,7 @@
     php_fpm_pool_group: nginx
     php_fpm_pool_user: php-fpm
     php_packages:
+      - php70u-bcmath
       - php70u-cli
       - php70u-common
       - php70u-devel
