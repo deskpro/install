@@ -1,0 +1,7 @@
+- name: Configure MySQL
+  ini_file:
+    dest: "{{mysql_config_file}}"
+    section: "{{mysql_config_item.key}}"
+    option: "{{item.key}}"
+    value: "{{item.value}}"
+  with_dict: "{{mysql_config_item.value}}"

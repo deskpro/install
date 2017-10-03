@@ -3,12 +3,10 @@
 - include_vars: "Ubuntu15.yml"
   when: ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '15'
 
-- name: Set MySQL to listen on 127.0.0.1 only
-  ini_file:
-    dest={{mysql_config_file}}
-    section=mysqld
-    option=bind-address
-    value=127.0.0.1
+- include: config.yml
+  with_dict: "{{mysql_config}}"
+  loop_control:
+    loop_var: mysql_config_item
 
 - name: Ensure MySQL picks up the new settings and is running
   service: name={{mysql_service_name}} state=restarted enabled=yes
