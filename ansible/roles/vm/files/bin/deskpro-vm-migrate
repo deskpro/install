@@ -1,0 +1,780 @@
+#!/usr/bin/env python
+# vim: ts=4 sts=4 sw=4 et:
+
+"""Migrate an old install of DeskPRO to this host.
+
+Use this script if you have an instance running an old version of DeskPRO and
+want to move the whole install to a new virtual machine (possibly running an
+up-to-date version of Deskpro)
+"""
+
+from contextlib import contextmanager
+from functools import wraps
+import argparse
+import os
+import pipes
+import random
+import re
+import string
+import subprocess
+import sys
+import textwrap
+import time
+import warnings
+
+from paramiko.client import SSHClient, AutoAddPolicy
+from paramiko.ssh_exception import SSHException
+
+
+class MigrationError(RuntimeError):
+    pass
+
+
+class MigrationWarning(RuntimeWarning):
+    pass
+
+
+def random_string(length, prefix='', suffix=''):
+    return '{}{}{}'.format(
+        prefix,
+        ''.join(random.sample(string.letters, length)),
+        suffix,
+    )
+
+
+def step(message):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            try:
+                with self.logger.start_step(message):
+                    sys.stdout.write('{}... '.format(message))
+                    sys.stdout.flush()
+
+                    result = func(self, *args, **kwargs)
+
+                    sys.stdout.write('OK\n')
+
+                    return result
+            except MigrationError:
+                sys.stdout.write('FAIL\n')
+
+                raise
+        return wrapper
+    return decorator
+
+
+class DatabaseConnection:
+    def __init__(self, host, username, password, name, runner):
+        self.host = host
+        self.username = username
+        self.password = password
+        self.name = name
+        self.runner = runner
+
+    @staticmethod
+    def _parse_legacy_db_credentials(config):
+        var_re = re.compile(r'''\bdefine\((['"])(\w+)\1, (['"])(.+)\3\);''')
+
+        matches = {m.group(2): m.group(4) for m in var_re.finditer(config)}
+
+        keys = ['name', 'password', 'user', 'host']
+
+        data = {}
+
+        for key in keys:
+            config_key = 'DP_DATABASE_{}'.format(key.upper())
+
+            # just store things here, checking is performed elsewhere
+            if config_key in matches:
+                data[key] = matches[config_key]
+
+        return data
+
+    @staticmethod
+    def _parse_db_credentials(config):
+        var_re = re.compile(r"\$DB_CONFIG\['(\w+)'\]\s*=\s*'(.+)';")
+
+        data = {}
+
+        for match in var_re.finditer(config):
+            if match.group(1) == 'dbname':
+                data['name'] = match.group(2)
+            elif match.group(1) == 'password':
+                # keep a pre-escaped password
+                data['password'] = match.group(2).replace("'", "\\'")
+            else:
+                data[match.group(1)] = match.group(2)
+
+        return data
+
+    @staticmethod
+    def _verify_database_data(data):
+        required = ['host', 'user', 'password', 'name']
+
+        if all(item in data for item in required):
+            return
+
+        missing = [item for item in required if item not in data]
+
+        msg = (
+            'Missing some database info. You might have to use the --db-* '
+            'options. Missing keys: {}'
+        )
+        raise MigrationError(msg.format(','.join(missing)))
+
+    @staticmethod
+    def from_config(path, runner, legacy=False, **kwargs):
+        config = runner.read(path)
+
+        if legacy:
+            data = DatabaseConnection._parse_legacy_db_credentials(config)
+        else:
+            data = DatabaseConnection._parse_db_credentials(config)
+
+        # use extra arguments
+        data.update(kwargs)
+
+        DatabaseConnection._verify_database_data(data)
+
+        return DatabaseConnection(
+            data['host'],
+            data['user'],
+            data['password'],
+            data['name'],
+            runner,
+        )
+
+    def query(self, query):
+        command = (
+            "mysql --batch --skip-column-names "
+            "-h {host} -u {user} -p{password} "
+            "-e {query} {name}"
+        ).format(
+            host=pipes.quote(self.host),
+            user=pipes.quote(self.username),
+            password=pipes.quote(self.password),
+            query=pipes.quote(query + ';'),
+            name=pipes.quote(self.name),
+        )
+
+        rc, output = self.runner.run(command)
+
+        return output.splitlines()
+
+    def dump(self, target):
+        if not target.endswith('.sql.gz'):
+            raise ValueError('Dump target filename must end in `.sql.gz`')
+
+        command = (
+            'mysqldump --opt -Q -h {host} -u {user} -p{password} {name}'
+            '| '
+            'gzip > {filename}'
+        ).format(
+            host=pipes.quote(self.host),
+            user=pipes.quote(self.username),
+            password=pipes.quote(self.password),
+            name=pipes.quote(self.name),
+            filename=pipes.quote(target),
+        )
+
+        self.runner.run(command)
+
+    def load(self, target):
+        if not target.endswith('.sql.gz'):
+            raise ValueError('Import target filename must end in `.sql.gz`')
+
+        command = (
+            'gzip -dck {filename} '
+            '| '
+            'mysql -h {host} -u {user} -p{password} {name}'
+        ).format(
+            filename=pipes.quote(target),
+            host=pipes.quote(self.host),
+            user=pipes.quote(self.username),
+            password=pipes.quote(self.password),
+            name=pipes.quote(self.name),
+        )
+
+        self.runner.run(command)
+
+
+class CommandRunner:
+    def __init__(self, logger, hostname='localhost', ssh_client=None):
+        self.logger = logger
+        self.ssh_client = ssh_client
+        self.hostname = hostname
+
+    def _run_command(self, command):
+        if self.ssh_client:
+            transport = self.ssh_client.get_transport()
+            with transport.open_session() as session:
+                output = ''
+                session.set_combine_stderr(True)
+                session.exec_command(command)
+
+                while not session.exit_status_ready():
+                    output += session.recv(16 * 1024)
+
+                rc = session.recv_exit_status()
+        else:
+            process = subprocess.Popen(
+                command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+
+            output, _ = process.communicate()
+            rc = process.returncode
+
+        return rc, output
+
+    def run(self, command, check=True):
+        with self.logger.start_command(command) as log:
+            rc, output = self._run_command(command)
+
+            if self.ssh_client:
+                user = self.ssh_client.get_transport().get_username()
+            else:
+                user = os.getlogin()
+
+            log['return_code'] = rc
+            log['output'] = output
+            log['user'] = user
+            log['host'] = self.hostname
+
+        if check and rc != 0:
+            raise subprocess.CalledProcessError(
+                rc,
+                command,
+                output,
+            )
+
+        return rc, output.strip()
+
+    def get(self, remote, local):
+        """Copy the `remote` file to `local`"""
+
+        if not self.ssh_client:
+            raise ValueError('This is not a remote runner')
+
+        with self.ssh_client.open_sftp() as sftp:
+            sftp.get(remote, local)
+
+    def read(self, path):
+        """Read file `path` and return its contents"""
+        if self.ssh_client:
+            with self.ssh_client.open_sftp() as sftp:
+                with sftp.open(path) as target_file:
+                    return target_file.read()
+        else:
+            with open(path) as target_file:
+                return target_file.read()
+
+
+class DeskproServerMigration:
+    def __init__(
+        self,
+        local_session, remote_session,
+        local_path, remote_path,
+        logger, dry_run, remote_db_options,
+    ):
+        self.local = local_session
+        self.remote = remote_session
+
+        self.local_deskpro_path = local_path
+        self.remote_deskpro_path = remote_path
+
+        self.logger = logger
+        self.dry_run = dry_run
+        self._remote_db_options = remote_db_options
+
+    def remote_file_exists(self, path):
+        rc, _ = self.remote.run('stat {}'.format(path), check=False)
+
+        return rc == 0
+
+    def local_path(self, path):
+        return os.path.join(self.local_deskpro_path, path)
+
+    def remote_path(self, path):
+        return os.path.join(self.remote_deskpro_path, path)
+
+    @step('Checking remote DeskPRO version')
+    def check_legacy_deskpro(self):
+        path = self.remote_path('index.php')
+        if self.remote_file_exists(path):
+            self.legacy_deskpro = True
+            return
+
+        path = self.remote_path('www/index.php')
+        if self.remote_file_exists(path):
+            self.legacy_deskpro = False
+            return
+
+        raise MigrationError(
+            'Remote system does not seem to contain a DeskPRO installation. '
+            'Maybe you need to use `--remote-path`?'
+        )
+
+    @step('Checking local DeskPRO')
+    def check_local_install(self):
+        path = self.local_path('app/run/build-num.txt')
+        try:
+            os.stat(path)
+        except OSError as exc:
+            if exc.errno == os.errno.ENOENT:
+                raise MigrationError(
+                    "Couldn't find a local Deskpro installation. "
+                    "Maybe you need to use `--local-path`?"
+                )
+            elif exc.errno == os.errno.EACCES:
+                raise MigrationError(
+                    'This user does not have permissions to access the local '
+                    'installation. Run this program using the `deskpro` user'
+                )
+            raise MigrationError(exc)
+
+    @step('Check database connection on both ends')
+    def check_database_connection(self):
+        if self.legacy_deskpro:
+            remote_path = self.remote_path('config.php')
+        else:
+            remote_path = self.remote_path('config/config.database.php')
+
+        local_path = self.local_path('config/config.database.php')
+
+        self.local_db = DatabaseConnection.from_config(local_path, self.local)
+        self.remote_db = DatabaseConnection.from_config(
+            remote_path,
+            self.remote,
+            self.legacy_deskpro,
+            **self._remote_db_options
+        )
+
+        if not self.local_db.query('select 42') == ['42']:
+            raise MigrationError('Cannot SELECT on local database')
+
+        if not self.remote_db.query('select 314') == ['314']:
+            raise MigrationError('Cannot SELECT on remote database')
+
+    @step('Disabling the helpdesk')
+    def disable_helpdesk(self):
+        # remote side
+        if self.legacy_deskpro:
+            path = self.remote_path('data/helpdesk-offline.trigger')
+        else:
+            path = self.remote_path('var/cache/helpdesk-offline.trigger')
+
+        if self.dry_run:
+            dirname = os.path.dirname(path)
+            if not self.remote_file_exists(dirname):
+                raise MigrationError(
+                    "Remote install can't be disabled. "
+                    "'{}' doesn't exist".format(
+                        dirname,
+                    )
+                )
+        else:
+            self.remote.run('touch {}'.format(path))
+
+        # local side
+        path = self.local_path('var/cache/helpdesk-offline.trigger')
+        if self.dry_run:
+            dirname = os.path.dirname(path)
+            if not os.path.exists(dirname):
+                raise MigrationError(
+                    "Local install can't be disabled. "
+                    "'{}' doesn't exist".format(
+                        dirname,
+                    )
+                )
+        else:
+            self.local.run('touch {}'.format(path))
+
+    @step('Cleaning up local install files')
+    def clean_local_files(self):
+        paths = [
+            'var/cache',
+            'var/tmp',
+            'var/logs',
+            'backups',
+            'attachments',
+        ]
+
+        for path in paths:
+            full_path = self.local_path(path)
+            if not os.path.exists(full_path):
+                warnings.warn(
+                    "Missing local path {}".format(full_path),
+                    MigrationWarning,
+                )
+
+            if not self.dry_run:
+                self.local.run('rm -rf {}/*'.format(full_path))
+
+    @step('Creating temporary directories')
+    def create_temporary_directories(self):
+        cmd = 'mktemp -d /tmp/dp-migrate-XXXXXXXX'
+        _, self.local_tmp_dir = self.local.run(cmd)
+        _, self.remote_tmp_dir = self.remote.run(cmd)
+
+    @step('Deleting tables from local database')
+    def clean_database(self):
+        if self.dry_run:
+            name = random_string(16, 'tmp')
+            commands = [
+                'create table {} (id integer)'.format(name),
+                'drop table {}'.format(name),
+            ]
+        else:
+            tables = self.local_db.query('show tables')
+
+            commands = ['set foreign_key_checks = 0']
+            commands.extend('drop table {}'.format(table) for table in tables)
+
+        self.local_db.query(';'.join(commands))
+
+    @step('Dumping old database')
+    def dump_old_database(self):
+        path = os.path.join(self.remote_tmp_dir, 'db.sql.gz')
+        self.remote_db.dump(path)
+
+    @step('Copying database from remote host')
+    def copy_database(self):
+        remote = os.path.join(self.remote_tmp_dir, 'db.sql.gz')
+        local = os.path.join(self.local_tmp_dir, 'db.sql.gz')
+
+        self.remote.get(remote, local)
+
+    @step('Importing database into new server')
+    def import_database(self):
+        if self.dry_run:
+            return
+        path = os.path.join(self.local_tmp_dir, 'db.sql.gz')
+        self.local_db.load(path)
+
+    @step('Copying helpdesk files')
+    def copy_files(self):
+        if self.legacy_deskpro:
+            remote_path = self.remote_path('data/files/')
+        else:
+            remote_path = self.remote_path('attachments/')
+        remote_tar = os.path.join(self.remote_tmp_dir, 'files.tar.gz')
+
+        local_path = self.local_path('attachments/')
+        local_tar = os.path.join(self.local_tmp_dir, 'files.tar.gz')
+
+        command = 'tar czf {archive} -C {source} .'.format(
+            archive=remote_tar, source=remote_path,
+        )
+        self.remote.run(command)
+
+        self.remote.get(remote_tar, local_tar)
+
+        if self.dry_run:
+            name = random_string(16, 'dp-attachments-')
+            local_path = os.path.join(self.local_tmp_dir, name)
+            os.mkdir(local_path)
+
+        command = 'tar xzf {archive} -C {target}'.format(
+            archive=local_tar, target=local_path,
+        )
+        self.local.run(command)
+        self.local.run('chmod -R 770 {target}'.format(target=local_path))
+
+    @step('Cleaning up')
+    def clean_temporary_files(self):
+        self.local.run('rm -rf {}'.format(self.local_tmp_dir))
+        self.remote.run('rm -rf {}'.format(self.remote_tmp_dir))
+
+    @step('Upgrading the local installation')
+    def upgrade_deskpro(self):
+        if self.dry_run:
+            return
+
+        path = self.local_path('bin/console')
+        command = '{} dp:upgrade'.format(path)
+
+        self.local.run(command)
+
+    @step('Re-enabling the local helpdesk')
+    def enable_helpdesk(self):
+        if self.dry_run:
+            return
+
+        path = self.local_path('var/cache/helpdesk-offline.trigger')
+
+        self.local.run('rm -rf {}'.format(path))
+
+    def execute(self):
+        self.check_legacy_deskpro()
+        self.check_local_install()
+        self.check_database_connection()
+        self.disable_helpdesk()
+        self.clean_local_files()
+        self.create_temporary_directories()
+        self.clean_database()
+        self.dump_old_database()
+        self.copy_database()
+        self.import_database()
+        self.copy_files()
+        self.upgrade_deskpro()
+        self.enable_helpdesk()
+
+        # clean stuff we used, don't need that since we're DONE!
+        self.clean_temporary_files()
+
+
+class MigrationLogger:
+    def __init__(self):
+        self.steps = []
+
+    @contextmanager
+    def start_step(self, step):
+        self.steps.append({
+            'step': step,
+            'started_at': time.time(),
+            'commands': [],
+        })
+
+        yield
+
+        self.steps[-1]['finished_at'] = time.time()
+
+    @contextmanager
+    def start_command(self, command):
+        if not self.steps:
+            raise ValueError(
+                'You need to use `start_step` before `start_command`'
+            )
+
+        data = {
+            'command': command,
+            'started_at': time.time(),
+        }
+
+        yield data
+
+        data['finished_at'] = time.time()
+
+        self.steps[-1]['commands'].append(data)
+
+
+class DictOptionAction(argparse.Action):
+    def __init__(self, option_strings, dest, *args, **kwargs):
+        if len(option_strings) > 1:
+            raise TypeError(
+                'Cannot use this action with multiple option strings'
+            )
+
+        pattern = r'^--(?P<dest>\w+)-(?P<key>\w+)$'
+        match = re.match(pattern, option_strings[0])
+        if not match:
+            raise TypeError('Option must have format `--x-y`')
+
+        dest = match.group('dest')
+        self.key = match.group('key')
+
+        super(DictOptionAction, self).__init__(
+            option_strings=option_strings,
+            dest=dest,
+            default={},
+            *args,
+            **kwargs
+        )
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        if getattr(namespace, self.dest, None) is None:
+            setattr(namespace, self.dest, {})
+
+        options = getattr(namespace, self.dest)
+
+        options[self.key] = value
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='''Do not perform any modifications, just check that the migration
+        can actually proceed''',
+    )
+
+    parser.add_argument(
+        '--verbose',
+        help='Show more output',
+        action='store_true',
+    )
+
+    parser.add_argument(
+        '--host',
+        required=True,
+        help='Address of the host with the older DeskPRO installation',
+    )
+    parser.add_argument(
+        '--user',
+        default=os.getlogin(),
+        help='Username used to access the remote DeskPRO installation',
+    )
+
+    parser.add_argument(
+        '--local-sudo',
+        action='store_true',
+        help='Use sudo on local commands',
+    )
+    parser.add_argument(
+        '--remote-sudo',
+        action='store_true',
+        help='Use sudo on remote commands',
+    )
+
+    parser.add_argument(
+        '--password',
+        help='Password to use when not using SSH keys',
+        default=None,
+    )
+    parser.add_argument(
+        '--key-file',
+        metavar='filename',
+        help='Key to use when authenticating via SSH keys',
+        default=None,
+    )
+
+    parser.add_argument(
+        '--remote-path',
+        help='Base DeskPRO path on the remote machine',
+        metavar='path',
+        default='/usr/share/nginx/html/deskpro/',
+    )
+
+    parser.add_argument(
+        '--local-path',
+        help='Base DeskPRO path on the local machine',
+        metavar='path',
+        default='/usr/share/nginx/html/deskpro/',
+    )
+
+#    parser.add_argument(
+#        '--legacy-deskpro',
+#        help='''Treats the remote as a legacy DeskPRO install (v4). If not
+#        specified, this program will try to detect it automatically''',
+#        action='store_true',
+#        default=None,
+#    )
+
+    database_group = parser.add_argument_group(
+        'Remote database options',
+        textwrap.dedent('''\
+        These options are used to perform a dump of the remote database. If
+        any of these is not specified, the program will try to detect them
+        automatically''')
+    )
+
+    database_group.add_argument(
+        '--db-host',
+        metavar='host',
+        help='The database hostname',
+        action=DictOptionAction,
+    )
+
+    database_group.add_argument(
+        '--db-name',
+        metavar='name',
+        help='The database name',
+        action=DictOptionAction,
+    )
+
+    database_group.add_argument(
+        '--db-user',
+        metavar='user',
+        help='The user to connect to the database as',
+        action=DictOptionAction,
+    )
+
+    database_group.add_argument(
+        '--db-password',
+        metavar='pass',
+        help='The password for the user specified with --db-user',
+        action=DictOptionAction,
+    )
+
+#    troubleshooting = parser.add_argument_group(
+#        'Troubleshooting',
+#        'Options to help get through network os machine restrictions'
+#    )
+
+    return parser.parse_args(argv)
+
+
+def main():
+    args = parse_args()
+
+    try:
+        if args.dry_run:
+            print('Runnning in dry-run mode')
+        else:
+            print('Initiating DeskPRO migration')
+
+        print('-' * 40)
+
+        with SSHClient() as ssh_client:
+            ssh_client.load_system_host_keys()
+            ssh_client.set_missing_host_key_policy(AutoAddPolicy())
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                try:
+                    ssh_client.connect(
+                        args.host,
+                        username=args.user,
+                        password=args.password,
+                        key_filename=args.key_file,
+                    )
+                except SSHException as exc:
+                    raise MigrationError(
+                        '{}. Do you have valid credentials? Try using '
+                        '--key-file or --password'.format(exc)
+                    )
+
+            logger = MigrationLogger()
+
+            local = CommandRunner(logger)
+            remote = CommandRunner(logger, args.host, ssh_client)
+
+            migration = DeskproServerMigration(
+                local,
+                remote,
+                args.local_path,
+                args.remote_path,
+                logger,
+                args.dry_run,
+                args.db,
+            )
+            migration.execute()
+
+    except MigrationError as exception:
+        print('ERROR: {}'.format(exception))
+        sys.exit(1)
+    else:
+        print('-' * 40)
+
+        if args.dry_run:
+            print(
+                'Dry run succeeded. You should be able to run the normal '
+                'migration process now'
+            )
+        else:
+            print(
+                'Migration successful! Please log in to this instance to '
+                'check that everything is in order'
+            )
+
+
+if __name__ == '__main__':
+    main()

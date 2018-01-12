@@ -21,3 +21,4 @@
       runonce_action: install
     - role: log
       deskpro_install_log_type: virtual-machine
+    - role: vm
