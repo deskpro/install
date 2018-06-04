@@ -1,4 +1,9 @@
 ---
+- name: Ensure ufw is present
+  apt:
+    name: ufw
+    cache_valid_time: 86400
+
 - name: Enable firewall
   ufw: state=enabled policy=allow
 
