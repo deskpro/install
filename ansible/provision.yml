@@ -9,6 +9,7 @@
     - base
     - php
     - nginx
+    - deskpro.java
     - elasticsearch
     - role: deskpro
       deskpro_install_type: virtual-machine

@@ -12,7 +12,6 @@
   with_items:
     - curl
     - firewalld
-    - java-1.7.0-openjdk-headless
     - mariadb-server
     - MySQL-python
     - nginx

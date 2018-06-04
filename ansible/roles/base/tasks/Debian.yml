@@ -7,7 +7,6 @@
   with_items:
     - cron
     - curl
-    - default-jre-headless
     - mariadb-server
     - nginx
     - postfix

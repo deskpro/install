@@ -1,0 +1,5 @@
+---
+- name: Install Java
+  yum:
+    name: "{{item}}"
+  with_items: "{{deskpro_java_packages}}"

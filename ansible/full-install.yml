@@ -9,6 +9,7 @@
     - base
     - nginx
     - php
+    - deskpro.java
     - elasticsearch
     - deskpro
     - firewall

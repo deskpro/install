@@ -1,0 +1,15 @@
+---
+- name: Install the openjdk-r PPA for 14.04
+  apt_repository:
+    repo: "ppa:openjdk-r/ppa"
+  when: ansible_distribution_release == "trusty"
+
+- name: Install Java
+  apt:
+    name: "{{item}}"
+  with_items: "{{deskpro_java_packages}}"
+  register: java_install
+
+- name: Update Java CA certs on 14.04
+  command: /var/lib/dpkg/info/ca-certificates-java.postinst configure
+  when: ansible_distribution_release == "trusty" and java_install.changed
