@@ -83,11 +83,13 @@ EOT
 install_dependencies_debian() {
 	info_message -n 'Installing dependencies... '
 	(
-		$SUDO bash -c 'echo "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/debian-backports.list'
+		$SUDO bash -c 'echo "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main" > /etc/apt/sources.list.d/trusty-ppa.list'
+		$SUDO apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
 
 		$SUDO apt-get update
 		$SUDO apt-get install --no-install-recommends -y curl jq aptitude apt-transport-https lsb-release python-pkg-resources sudo
-		$SUDO apt-get install --no-install-recommends -y -t jessie-backports ansible
+		$SUDO apt-get install --no-install-recommends -y ansible
+
 	) >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 }
