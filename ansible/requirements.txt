@@ -1,4 +1,0 @@
-geerlingguy.php,3.2.2
-geerlingguy.composer,1.4.1
-jdauphant.nginx,v2.3.1
-jnv.unattended-upgrades,v1.2.0

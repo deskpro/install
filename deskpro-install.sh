@@ -324,7 +324,7 @@ install_deskpro() {
 	cd "$ANSIBLE_DIR"
 
 	info_message -n 'Installing role dependencies... '
-	ansible-galaxy install -r requirements.txt -i -p roles >>"${FULL_LOG_FILE}" 2>&1
+	ansible-galaxy install -r requirements.yml -i -p roles >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 
 	run_ansible log-helper.yml

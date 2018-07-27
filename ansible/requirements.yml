@@ -1,0 +1,9 @@
+---
+- src: geerlingguy.php
+  version: "3.2.2"
+- src: geerlingguy.composer
+  version: "1.4.1"
+- src: jdauphant.nginx
+  version: "v2.3.1"
+- src: jnv.unattended-upgrades
+  version: "v1.2.0"
