@@ -9,6 +9,7 @@
     - base
     - php
     - nginx
+    - deskpro.certbot
     - deskpro.java
     - elasticsearch
     - role: deskpro

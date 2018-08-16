@@ -1,0 +1,10 @@
+- name: Add Certbot PPA
+  apt_repository:
+    repo: "ppa:certbot/certbot"
+
+- name: Install Certbot
+  apt:
+    name: "{{item}}"
+  with_items:
+    - certbot
+    - python-certbot-nginx

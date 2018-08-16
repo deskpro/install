@@ -8,6 +8,7 @@
   roles:
     - base
     - nginx
+    - deskpro.certbot
     - php
     - deskpro.java
     - elasticsearch
