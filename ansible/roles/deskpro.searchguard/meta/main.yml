@@ -1,0 +1,22 @@
+---
+dependencies:
+  - role: deskpro.install
+  - role: deskpro.elasticsearch
+    deskpro_elasticsearch_config:
+      searchguard.ssl.transport.pemcert_filepath: pki/node.crt
+      searchguard.ssl.transport.pemkey_filepath: pki/node.key
+      searchguard.ssl.transport.pemtrustedcas_filepath: pki/ca/root-ca.crt
+      searchguard.ssl.transport.enforce_hostname_verification: yes
+
+      searchguard.ssl.http.enabled: true
+      searchguard.ssl.http.pemcert_filepath: pki/node.crt
+      searchguard.ssl.http.pemkey_filepath: pki/node.key
+      searchguard.ssl.http.pemtrustedcas_filepath: pki/ca/root-ca.crt
+
+      searchguard.authcz.admin_dn:
+        - CN=admin,OU=deskpro-vm
+      searchguard.nodes_dn:
+        - CN=localhost,OU=deskpro-vm
+    deskpro_elasticsearch_plugins:
+      - "com.floragunn:search-guard-5:{{deskpro_searchguard_version}}"
+    deskpro_elasticsearch_start_service: no

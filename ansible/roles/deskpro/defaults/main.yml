@@ -1,2 +1,15 @@
 ---
-deskpro_install_type: 'installer'
+deskpro_install_root: /srv/deskpro
+deskpro_zip_url: "{{lookup('env', 'DESKPRO_ZIP_URL') | default('https://www.deskpro.com/downloads/deskpro.zip', true)}}"
+
+deskpro_user: deskpro
+deskpro_group: deskpro
+
+deskpro_database_host: localhost
+deskpro_database_user: deskpro
+deskpro_database_name: deskpro
+deskpro_database_password: deskpropassword
+
+deskpro_elasticsearch_host: localhost
+deskpro_elasticsearch_port: 9200
+deskpro_elasticsearch_address: "https://deskpro:{{deskpro_searchguard_deskpro_password}}@{{deskpro_elasticsearch_host}}:{{deskpro_elasticsearch_port}}/"

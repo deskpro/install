@@ -1,0 +1,18 @@
+---
+dependencies:
+  - role: deskpro.mysql
+    deskpro_mysql_databases:
+      - "{{deskpro_database_name}}"
+    deskpro_mysql_users:
+      - name: "{{deskpro_database_user}}"
+        password: "{{deskpro_database_password}}"
+        priv: "{{deskpro_database_name}}.*:ALL"
+  - role: deskpro.php
+  - role: deskpro.nginx
+    deskpro_nginx_mainline: yes
+    deskpro_nginx_sites:
+      deskpro:
+        template: deskpro.conf.j2
+    nginx_group: "{{deskpro_php_fpm_group}}"
+  - role: deskpro.searchguard
+  - role: deskpro.tika

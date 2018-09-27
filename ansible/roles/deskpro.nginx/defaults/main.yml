@@ -1,0 +1,15 @@
+---
+# deskpro_nginx_sites is sent directly to nginx_sites, and
+# deskpro_nginx_auth_basic_files is sent directly to nginx_auth_basic_files
+#
+# see their structure at: https://github.com/jdauphant/ansible-role-nginx
+
+deskpro_nginx_sites: {}
+deskpro_nginx_auth_basic_files: {}
+
+# Whether to install the mainline version of nginx instead of whatever the
+# distro packages
+deskpro_nginx_mainline: False
+
+deskpro_nginx_certbot_certificates: []
+deskpro_nginx_certbot_renew_hook: "systemctl reload {{nginx_service_name}}"

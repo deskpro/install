@@ -1,2 +1,0 @@
-- name: Run OS-specific install
-  include: "install-{{ansible_distribution | lower}}.yml"

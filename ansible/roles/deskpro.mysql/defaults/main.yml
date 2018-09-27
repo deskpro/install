@@ -1,0 +1,37 @@
+---
+# Databases to create. Example:
+#
+# deskpro_mysql_databases:
+#   - somedatabasename
+#   - otherdatabasename
+#
+deskpro_mysql_databases: []
+
+# Users to create, with optional privileges. Example:
+#
+# deskpro_mysql_users:
+#   - name: databaseuser
+#     password: databaseuserpassword
+#     priv: "somedatabasename.*:ALL" (optional, defaults to "*.*:ALL")
+#   - name: otheruser
+#     password: otheruserpassword
+#
+deskpro_mysql_users: []
+
+# Address to have MySQL listen on
+deskpro_mysql_bind_address: 127.0.0.1
+
+# Port to have MySQL listen on
+deskpro_mysql_port: 3306
+
+# Extra configuration for MySQL. Will be merged into the default configuration,
+# replacing entries already present there. Sample structure:
+#
+#   deskpro_mysql_config:
+#     mysqld:
+#       bind_address: 0.0.0.0
+#     mysqldump:
+#       some_option_without_value:
+#       other_option: other_value
+#
+deskpro_mysql_config: {}

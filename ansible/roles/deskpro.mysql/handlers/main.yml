@@ -1,0 +1,5 @@
+---
+- name: restart mysql
+  service:
+    name: "{{deskpro_mysql_service_name}}"
+    state: restarted

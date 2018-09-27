@@ -1,0 +1,19 @@
+---
+- name: Install IUS repository
+  yum:
+    name: https://centos7.iuscommunity.org/ius-release.rpm
+
+- name: Install PHP packages
+  yum:
+    name: "{{item}}"
+  with_items: "{{deskpro_php_default_packages | union(deskpro_php_packages)}}"
+
+- name: Create systemd override
+  template:
+    src: centos-php-override.conf.j2
+    dest: /etc/systemd/system/php-fpm.service.d/override.conf
+  register: systemd_override
+
+- name: Reload systemd config
+  command: systemctl daemon-reload
+  when: systemd_override.changed

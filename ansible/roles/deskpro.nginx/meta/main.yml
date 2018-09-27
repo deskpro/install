@@ -1,0 +1,5 @@
+dependencies:
+  - role: jdauphant.nginx
+    nginx_sites: {}
+    nginx_official_repo: "{{deskpro_nginx_mainline}}"
+    nginx_official_repo_mainline: "{{deskpro_nginx_mainline}}"

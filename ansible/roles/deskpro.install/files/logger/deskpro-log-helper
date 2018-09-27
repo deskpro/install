@@ -1,0 +1,170 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import logging
+import os
+import subprocess
+import urllib2
+import uuid
+
+
+class LoggerError(Exception):
+    pass
+
+
+def get_ansible_facts():
+    # I know I can use the regular ansible api for this, but I'm not adding
+    # 50 extra lines just for that:
+    #
+    # http://docs.ansible.com/ansible/developing_api.html
+
+    process = subprocess.Popen(
+        ['ansible', '-m', 'setup', '-c', 'local', '--one-line', 'localhost'],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        env=dict(os.environ, ANSIBLE_FORCE_COLOR='false', ANSIBLE_NOCOLOR='true'),
+    )
+
+    stdout, _ = process.communicate()
+
+    response = json.loads(stdout.replace('localhost | SUCCESS => ', ''))
+    return response['ansible_facts']
+
+
+def get_install_uuid():
+    filename = '/etc/deskpro/install-uuid'
+
+    try:
+        with open(filename) as uuid_file:
+            install_uuid = uuid_file.read().strip()
+            try:
+                uuid.UUID(install_uuid)
+                return install_uuid
+            except ValueError:
+                raise LoggerError('Format of UUID file is incorrect')
+    except IOError:
+        raise LoggerError('UUID file is missing')
+
+
+def log_start(args):
+    install_uuid = get_install_uuid()
+
+    facts = get_ansible_facts()
+
+    log_post_json(install_uuid, 'start', {
+        'os': {
+            'name': facts['ansible_lsb']['description'],
+            'virtualization_role': facts['ansible_virtualization_role'],
+            'virtualization_type': facts['ansible_virtualization_type'],
+        },
+        'hardware': {
+            'cpus': facts['ansible_processor_count'],
+            'memory': facts['ansible_memtotal_mb'],
+        },
+    })
+
+
+def log_success(args):
+    assert isinstance(args.duration, float)
+
+    install_uuid = get_install_uuid()
+
+    log_post_json(log_id, 'success', {
+        'duration': args.duration
+    })
+
+
+def log_failure(args):
+    assert isinstance(args.duration, float)
+
+    install_uuid = get_install_uuid()
+
+    log_post_json(log_id, 'error', {
+        'duration': args.duration,
+        'summary': args.summary,
+    })
+
+
+def log_upload(args):
+    install_uuid = get_install_uuid()
+
+    with open(args.file) as logfile:
+        log = logfile.read()
+
+    log_post_json(log_id, 'logs', log)
+
+
+def build_parser():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--debug',
+        dest='loglevel',
+        action='store_const',
+        const=logging.DEBUG,
+        default=logging.WARNING,
+    )
+    parser.add_argument(
+        '--verbose',
+        dest='loglevel',
+        action='store_const',
+        const=logging.INFO,
+    )
+
+    parser.add_argument('--ignore-errors', action='store_true')
+
+    subparsers = parser.add_subparsers()
+
+    parser_start = subparsers.add_parser('start')
+    parser_start.set_defaults(func=log_start)
+
+    parser_success = subparsers.add_parser('success')
+    parser_success.add_argument('--duration', type=float, required=True)
+    parser_success.set_defaults(func=log_success)
+
+    parser_failure = subparsers.add_parser('failure')
+    parser_failure.add_argument('--duration', type=float, required=True)
+    parser_failure.add_argument('--summary', required=True)
+    parser_failure.set_defaults(func=log_failure)
+
+    parser_log = subparsers.add_parser('log')
+    parser_log.add_argument('--file', required=True)
+    parser_log.set_defaults(func=log_upload)
+
+    return parser
+
+
+def log_post_json(log_id, action, data):
+    log_type = '{{deskpro_install_type}}'
+    url = 'http://app-stats.deskpro-service.com/installer/{}/{}/{}'
+
+    request = urllib2.Request(url.format(log_type, log_id, action))
+
+    if isinstance(data, dict):
+        request.add_header('Content-Type', 'application/json')
+        data = json.dumps(data)
+
+    response = urllib2.urlopen(request, data)
+    return response.read()
+
+
+def main():
+    parser = build_parser()
+
+    args = parser.parse_args()
+
+    logging.basicConfig(level=args.loglevel)
+
+    try:
+        args.func(args)
+    except urllib2.URLError as e:
+        if not args.ignore_errors:
+            raise e
+    except LoggerError as e:
+        logging.error(e.args[0])
+        if not args.ignore_errors:
+            raise e
+
+
+if __name__ == '__main__':
+    main()

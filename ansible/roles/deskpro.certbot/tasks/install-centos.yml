@@ -1,6 +1,0 @@
-- name: Install Certbot
-  yum:
-    name: "{{item}}"
-  with_items:
-    - certbot
-    - certbot-nginx

@@ -1,0 +1,26 @@
+---
+- name: Check for install UUID file
+  stat:
+    path: /etc/deskpro/install-uuid
+  register: install_uuid_file
+
+- name: Write install uuid
+  copy:
+    content: "{{(2 ** 128) | random | to_uuid}}"
+    dest: /etc/deskpro/install-uuid
+    mode: 0444
+  when: not install_uuid_file.stat.exists
+
+- name: Install logger binaries
+  template:
+    src: "{{item.src}}"
+    dest: "/usr/bin/{{item.path}}"
+    mode: 0755
+  with_filetree: logger
+  when: item.state == "file"
+  loop_control:
+    label: "{{item.path}}"
+
+- name: Export the install UUID
+  set_fact:
+    deskpro_install_uuid: "{{lookup('file', '/etc/deskpro/install-uuid')}}"

@@ -1,0 +1,52 @@
+---
+- name: Include OS-specific vars
+  include_vars: "{{item}}"
+  with_first_found:
+    - "{{ansible_distribution | lower}}.yml"
+    - "{{ansible_os_family | lower}}.yml"
+
+- name: Run OS-specific install
+  include: "install-{{ansible_distribution | lower}}.yml"
+
+- name: Remove configuration files from the scan dir
+  file:
+    path: "{{item}}"
+    state: absent
+  with_fileglob:
+    - "{{deskpro_php_ini_search_dir.cli}}/*"
+    - "{{deskpro_php_ini_search_dir.fpm}}/*"
+  notify: restart php-fpm
+
+- name: Remove pool files from pool dir
+  file:
+    path: "{{item}}"
+    state: absent
+  with_fileglob: "{{deskpro_php_fpm_pool_dir}}/*"
+  notify: restart php-fpm
+
+- name: Install php.ini
+  template:
+    src: php.ini.j2
+    dest: "{{item.path}}"
+  vars:
+    php_config: "{{item.config}}"
+  with_items:
+    - config: "{{deskpro_php_default_ini.cli | combine(deskpro_php_ini.cli, recursive=True)}}"
+      path: "{{deskpro_php_ini_path.cli}}"
+    - config: "{{deskpro_php_default_ini.fpm | combine(deskpro_php_ini.fpm, recursive=True)}}"
+      path: "{{deskpro_php_ini_path.fpm}}"
+  loop_control:
+    label: "{{item.path}}"
+  notify: restart php-fpm
+
+- name: Install php-fpm.conf
+  template:
+    src: php-fpm.conf.j2
+    dest: "{{deskpro_php_fpm_config_path}}"
+  notify: restart php-fpm
+
+- name: Ensure php-fpm service is started and enabled
+  service:
+    name: "{{deskpro_php_fpm_service_name}}"
+    state: started
+    enabled: yes

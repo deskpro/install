@@ -1,20 +1,20 @@
 # vim:ft=ansible
 ---
-- name: use all roles to install DeskPRO into a server
-  hosts: 127.0.0.1
+- name: Install Deskpro
+  hosts: localhost
   connection: local
   become: yes
-
   roles:
-    - base
-    - nginx
-    - deskpro.certbot
-    - php
-    - deskpro.java
-    - elasticsearch
-    - deskpro
-    - firewall
-    - mysql
-    - install
-    - security
-    - cron
+    - role: geerlingguy.postfix
+    - role: geerlingguy.ntp
+    - role: deskpro
+    - role: deskpro.certbot
+    - role: geerlingguy.firewall
+      firewall_allowed_tcp_ports:
+        - "22"
+        - "80"
+        - "443"
+    - role: geerlingguy.security
+      security_ssh_password_authentication: "yes"
+      security_ssh_permit_root_login: "yes"
+      security_fail2ban_enabled: no

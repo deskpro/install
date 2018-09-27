@@ -1,0 +1,35 @@
+---
+- name: Install Upstart unit on Ubuntu 14.04
+  template:
+    src: tika.conf.j2
+    dest: "/etc/init/{{deskpro_tika_service_name}}.conf"
+  when: ansible_distribution_release == "trusty"
+
+- name: Download Apache Tika on Ubuntu 14.04
+  command: "curl -L -o '{{deskpro_tika_jar_path}}' '{{deskpro_tika_jar_url}}'"
+  args:
+    creates: "{{deskpro_tika_jar_path}}"
+  when: ansible_distribution_release == "trusty"
+
+- name: Check Apache Tika checksum on Ubuntu 14.04
+  stat:
+    path: "{{deskpro_tika_jar_path}}"
+    checksum_algorithm: sha256
+    get_checksum: yes
+  register: tika_jar_file
+  failed_when: "tika_jar_file.stat.checksum != deskpro_tika_jar_sha256sum"
+  when: ansible_distribution_release == "trusty"
+
+- name: Download Apache Tika
+  get_url:
+    checksum: "sha256:{{deskpro_tika_jar_sha256sum}}"
+    dest: "{{deskpro_tika_jar_path}}"
+    mode: 0755
+    owner: root
+    url: "{{deskpro_tika_jar_url}}"
+  when: ansible_distribution_release != "trusty"
+
+- name: Start the Apache Tika service
+  service:
+    name: "{{deskpro_tika_service_name}}"
+    state: started

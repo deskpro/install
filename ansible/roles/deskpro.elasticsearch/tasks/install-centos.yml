@@ -1,0 +1,15 @@
+---
+- name: Install the Elasticsearch repository
+  yum_repository:
+    baseurl: "https://artifacts.elastic.co/packages/5.x/yum"
+    description: "Elasticsearch repository for 5.x packages"
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+    name: elasticsearch-5.x
+
+- name: Install Elasticsearch
+  yum:
+    name: "{{item}}"
+  with_items:
+    - "elasticsearch-{{deskpro_elasticsearch_version}}"

@@ -1,0 +1,5 @@
+---
+deskpro_searchguard_packages:
+  - python-bcrypt
+  - python-requests
+  - python-pip

@@ -1,0 +1,52 @@
+---
+# sample structure:
+#
+# deskpro_units:
+#   - name: sshd.service
+#     data:
+#       Unit:
+#         Description: OpenBSD Secure Shell Server
+#         After: network.target auditd.service
+#         ConditionPathExists: !/etc/ssh/sshd_not_to_be_run
+#       Service:
+#         EnvironmentFile: -/etc/default/ssh
+#         ExecStart: /usr/sbin/sshd -D $SSHD_OPTS
+#         ExecReload: /bin/kill -HUP $MAINPID
+#         KillMode: process
+#         Restart: on-failure
+#         RestartPreventExitStatus: 255
+#         Type: notify
+#       Install:
+#         WantedBy: multi-user.target
+#         Alias: sshd.service
+#     enabled: yes
+#     state: started
+#   - name: super_awesome_deskpro_service.service
+#     data:
+#       Unit:
+#         Description: This Service Description
+#       Service:
+#         ExecStart: /usr/local/bin/awesome_service
+#     enabled: yes
+#     state: started
+#   - name: some-service.service
+#     data:
+#       Unit:
+#         Description: Magic sleeping service
+#       Service:
+#         ExecStart:
+#           - # empty, could also use `null`
+#           - /usr/bin/sleep 100000
+#     enabled: yes
+#     state: started
+#   - name: unecessary_service.service
+#     enabled: false
+#     state: stopped
+#     remove: yes
+
+deskpro_units: []
+
+deskpro_unit_default:
+  Install:
+    WantedBy: multi-user.target
+

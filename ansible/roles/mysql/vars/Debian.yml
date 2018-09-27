@@ -1,3 +1,0 @@
----
-mysql_service_name: mysql
-mysql_config_file: /etc/mysql/my.cnf

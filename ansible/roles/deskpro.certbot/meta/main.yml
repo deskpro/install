@@ -1,4 +1,0 @@
----
-dependencies:
-  - role: deskpro.yum-epel
-    when: ansible_distribution == "CentOS"

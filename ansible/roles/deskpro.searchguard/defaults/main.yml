@@ -1,0 +1,70 @@
+---
+deskpro_searchguard_deskpro_password: "{{lookup('password', deskpro_secrets_path + '/searchguard-deskpro-password length=32')}}"
+
+deskpro_searchguard_config:
+  searchguard:
+    dynamic:
+      authc:
+        http_basic_auth_internal:
+          enabled: true
+          order: 0
+          http_authenticator:
+            type: basic
+            challenge: true
+          authentication_backend:
+            type: intern
+
+deskpro_searchguard_users:
+  deskpro:
+    hash: "{{lookup('searchguard_hash', 'deskpro', deskpro_searchguard_deskpro_password)}}"
+
+deskpro_searchguard_roles:
+  deskpro:
+    cluster:
+      - CLUSTER_COMPOSITE_OPS
+      - CLUSTER_MONITOR
+    indices:
+      deskpro:
+        '*':
+          - INDICES_ALL
+      '*':
+        '*':
+          - INDICES_MONITOR
+  authenticated:
+    cluster:
+      - 'cluster:monitor/main'
+      - CLUSTER_COMPOSITE_OPS_RO
+
+deskpro_searchguard_roles_mapping:
+  deskpro:
+    users:
+      - deskpro
+  authenticated:
+    users:
+      - '*'
+
+deskpro_searchguard_action_groups:
+  CLUSTER_COMPOSITE_OPS_RO:
+    - 'indices:data/read/mget'
+    - 'indices:data/read/msearch'
+    - 'indices:data/read/mtv'
+    - 'indices:data/read/coordinate-msearch*'
+    - 'indices:admin/aliases/exists*'
+    - 'indices:admin/aliases/get*'
+
+  CLUSTER_COMPOSITE_OPS:
+    - 'indices:data/write/bulk'
+    - 'indices:admin/aliases*'
+    - CLUSTER_COMPOSITE_OPS_RO
+
+  CLUSTER_MONITOR:
+    - 'cluster:monitor/*'
+
+  INDICES_ALL:
+    - 'indices:*'
+
+  INDICES_MONITOR:
+    - "indices:monitor/*"
+
+
+deskpro_searchguard_version: "{{deskpro_searchguard_available_versions[deskpro_elasticsearch_version]}}"

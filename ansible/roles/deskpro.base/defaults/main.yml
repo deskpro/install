@@ -1,0 +1,3 @@
+---
+deskpro_ansible_cache: /var/lib/deskpro/cache/
+deskpro_secrets_path: /etc/deskpro/secrets

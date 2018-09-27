@@ -1,0 +1,43 @@
+---
+- name: Run OS-specific install
+  include: "install-{{ansible_distribution | lower}}.yml"
+
+- name: Write the Elasticsearch config file
+  copy:
+    dest: /etc/elasticsearch/elasticsearch.yml
+    content: "{{deskpro_elasticsearch_config | to_nice_yaml(2)}}"
+    mode: 0750
+    owner: root
+    group: elasticsearch
+  notify: restart elasticsearch
+  register: es_config
+
+- name: Write the JVM options file
+  template:
+    src: jvm.options.j2
+    dest: /etc/elasticsearch/jvm.options
+    owner: root
+    group: elasticsearch
+    mode: 0660
+
+- name: Install plugins
+  deskpro_elasticsearch_plugin:
+    plugin: "{{item}}"
+  with_items: "{{deskpro_elasticsearch_plugins}}"
+  notify: restart elasticsearch
+  register: es_plugins
+
+- name: Enable the Elasticsearch service
+  service:
+    name: elasticsearch
+    enabled: yes
+
+- name: Start the Elasticsearch service
+  service:
+    name: elasticsearch
+    state: started
+  when: deskpro_elasticsearch_start_service
+
+- name: Tell the world if ES needs a restart
+  set_fact:
+    deskpro_elasticsearch_needs_restart: "{{es_config.changed or es_plugins.changed}}"

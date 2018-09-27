@@ -1,0 +1,16 @@
+---
+- name: Ensure nginx is stopped (if it is installed) before continuing
+  service:
+    name: "{{nginx_service_name}}"
+    state: stopped
+  ignore_errors: yes
+
+- include: certbot-install.yml
+
+- include: certbot-certificate.yml
+  with_items: "{{deskpro_nginx_certbot_certificates}}"
+  loop_control:
+    loop_var: certificate
+  vars:
+    certbot_command: standalone
+

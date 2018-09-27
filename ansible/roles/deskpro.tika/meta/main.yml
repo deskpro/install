@@ -1,0 +1,19 @@
+---
+dependencies:
+  - role: deskpro.java
+  - role: deskpro.service
+    deskpro_units:
+      - name: "{{deskpro_tika_service_name}}.service"
+        enabled: yes
+        data:
+          Unit:
+            Description: Apache Tika Server
+          Service:
+            ExecStart: "/usr/bin/java -jar {{deskpro_tika_jar_path}} --host {{deskpro_tika_host}} --port {{deskpro_tika_port}}"
+            DynamicUser: 'on'
+            RemoveIPC: 'on'
+            PrivateTmp: 'on'
+            ProtectSystem: strict
+            ProtectHome: read-only
+            User: nobody
+    when: ansible_service_mgr == "systemd"

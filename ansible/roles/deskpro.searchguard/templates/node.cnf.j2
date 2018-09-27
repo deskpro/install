@@ -1,0 +1,25 @@
+oid_section = oids
+
+[req]
+default_bits = 4096
+default_keyfile = node.key
+default_md = sha256
+distinguished_name = node_distinguished_name
+encrypt_key = no
+prompt = no
+req_extensions = node_extensions
+
+[node_distinguished_name]
+OU = deskpro-vm
+CN = localhost
+
+[oids]
+searchGuardOid = 1.2.3.4.5.5
+
+[node_extensions]
+subjectAltName = @node_subject_alt_name
+
+[node_subject_alt_name]
+DNS.1 = localhost
+RID.1 = searchGuardOid
+

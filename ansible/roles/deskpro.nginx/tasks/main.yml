@@ -1,0 +1,29 @@
+- name: Check if certificates exist
+  stat:
+    path: "/etc/letsencrypt/live/{{item.domains | first}}/cert.pem"
+  register: certificate_paths
+  with_items: "{{deskpro_nginx_certbot_certificates}}"
+
+- include: certbot-first-run.yml
+  when: certificate_paths | any_path_is_missing
+
+- include_role:
+    name: jdauphant.nginx
+  vars:
+    nginx_sites: "{{deskpro_nginx_sites}}"
+    nginx_auth_basic_files: "{{deskpro_nginx_auth_basic_files}}"
+    nginx_official_repo: "{{deskpro_nginx_mainline}}"
+    nginx_official_repo_mainline: "{{deskpro_nginx_mainline}}"
+    keep_only_specified: yes
+
+- include: certbot-install.yml
+  when: deskpro_nginx_certbot_certificates
+
+- include: certbot-certificate.yml
+  when: deskpro_nginx_certbot_certificates
+  with_items: "{{deskpro_nginx_certbot_certificates}}"
+  loop_control:
+    loop_var: certificate
+
+- include: certbot-cron.yml
+  when: deskpro_nginx_certbot_certificates

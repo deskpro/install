@@ -1,0 +1,42 @@
+---
+- name: Include OS-specific vars
+  include_vars: "{{item}}"
+  with_first_found:
+    - "{{ansible_distribution | lower}}.yml"
+    - "{{ansible_os_family | lower}}.yml"
+    - "default.yml"
+
+- name: Install MySQL packages
+  package:
+    name: "{{item}}"
+  with_items: "{{deskpro_mysql_packages}}"
+
+- name: Create MySQL config file
+  template:
+    src: my.cnf.j2
+    dest: "{{deskpro_mysql_config_path}}"
+  notify:
+    - restart mysql
+
+- name: Enable and start the MySQL service
+  service:
+    name: "{{deskpro_mysql_service_name}}"
+    state: started
+    enabled: yes
+
+- name: Create databases
+  mysql_db:
+    name: "{{item}}"
+    encoding: "utf8"
+    state: present
+  with_items: "{{deskpro_mysql_databases}}"
+
+- name: Create database users
+  mysql_user:
+    name: "{{item.name}}"
+    password: "{{item.password}}"
+    priv: "{{item.priv | default('*.*:ALL')}}"
+    state: present
+  loop_control:
+    label: "{{item.name}}"
+  with_items: "{{deskpro_mysql_users}}"

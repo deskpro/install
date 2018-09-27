@@ -1,0 +1,30 @@
+---
+- name: Ensure config dir exists
+  file:
+    path: /etc/letsencrypt/config
+    mode: 0700
+    owner: "{{nginx_user}}"
+    group: "{{nginx_group}}"
+    state: directory
+
+- name: Create configuration file
+  template:
+    src: certbot-config.ini.j2
+    dest: /etc/letsencrypt/config/{{certificate.domains | first}}.ini
+    owner: "{{nginx_user}}"
+    group: "{{nginx_group}}"
+
+- name: Ensure the certificate webroot exists
+  file:
+    path: "{{certificate.certbot.webroot}}/.well-known/"
+    state: directory
+    recurse: yes
+    mode: 0700
+    owner: "{{nginx_user}}"
+    group: "{{nginx_group}}"
+
+- name: Generate and update certificate
+  command: "certbot {{certbot_command | default('certonly')}} --config /etc/letsencrypt/config/{{certificate.domains | first}}.ini"
+  register: certbot_certonly
+  changed_when: "'Your certificate and chain have been saved' in certbot_certonly.stdout"
+

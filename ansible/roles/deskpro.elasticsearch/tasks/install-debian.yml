@@ -1,0 +1,26 @@
+---
+- name: Install the HTTPS apt transport
+  apt:
+    name: apt-transport-https
+
+- name: Install the Elasticsearch Signing Key
+  apt_key:
+    url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+
+- name: Install the Elasticsearch repository
+  apt_repository:
+    repo: "deb https://artifacts.elastic.co/packages/5.x/apt stable main"
+
+- name: Install Elasticsearch
+  apt:
+    name: "{{item}}"
+    update_cache: yes
+  with_items:
+    - "elasticsearch={{deskpro_elasticsearch_version}}"
+  register: es_install
+
+- name: Stop ES if just installed
+  service:
+    name: elasticsearch
+    state: stopped
+  when: es_install.changed

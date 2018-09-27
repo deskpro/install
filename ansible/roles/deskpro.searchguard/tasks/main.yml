@@ -1,0 +1,85 @@
+---
+- name: Include OS-specific vars
+  include_vars: "{{item}}"
+  with_first_found:
+    - "{{ansible_distribution_release | lower}}.yml"
+    - "{{ansible_distribution | lower}}.yml"
+    - "{{ansible_os_family | lower}}.yml"
+
+- name: Install dependencies
+  package:
+    name: "{{item}}"
+  with_items: "{{deskpro_searchguard_packages}}"
+
+- name: Install Ubuntu 14.04 dependencies
+  pip:
+    name: ndg-httpsclient
+  when: ansible_distribution_release == "trusty"
+
+- name: Create the Search Guard config directory
+  file:
+    path: /etc/elasticsearch/sg-config
+    owner: root
+    group: elasticsearch
+    mode: 0750
+    state: directory
+
+- name: Write the searchguard config files
+  copy:
+    dest: "/etc/elasticsearch/sg-config/{{item.type}}.yml"
+    content: "{{item.config | to_nice_yaml(2)}}"
+  with_items:
+    - type: config
+      config: "{{deskpro_searchguard_config}}"
+    - type: internalusers
+      config: "{{deskpro_searchguard_users}}"
+    - type: roles
+      config: "{{deskpro_searchguard_roles}}"
+    - type: rolesmapping
+      config: "{{deskpro_searchguard_roles_mapping}}"
+    - type: actiongroups
+      config: "{{deskpro_searchguard_action_groups}}"
+  loop_control:
+    label: "{{item.type}}"
+
+- import_tasks: install-certificates.yml
+
+- name: Restart Elasticsearch
+  service:
+    name: elasticsearch
+    state: restarted
+  when: deskpro_elasticsearch_needs_restart
+
+- name: Disable the Elasticsearch restart handler
+  set_fact:
+    deskpro_elasticsearch_already_restarted: yes
+    deskpro_elasticsearch_needs_restart: no
+  when: deskpro_elasticsearch_needs_restart
+
+- name: Wait for Elasticsearch to be ready
+  wait_for:
+    port: "{{item}}"
+  with_items:
+    - 9200
+    - 9300
+
+- name: Link six.py to the urllib3 module in Bionic
+  file:
+    src: /usr/lib/python2.7/dist-packages/six.py
+    dest: /usr/lib/python2.7/dist-packages/urllib3/packages/six.py
+    state: link
+  when: ansible_distribution_release | lower == "bionic"
+
+- name: Apply the Search Guard config
+  searchguard_config:
+    path: "/etc/elasticsearch/sg-config/{{item}}.yml"
+    type: "{{item}}"
+    cert: /etc/elasticsearch/pki/admin.crt
+    key: /etc/elasticsearch/pki/admin.key
+    cacert: /etc/elasticsearch/pki/ca/root-ca.crt
+  with_items:
+    - config
+    - internalusers
+    - roles
+    - rolesmapping
+    - actiongroups

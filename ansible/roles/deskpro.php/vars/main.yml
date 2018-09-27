@@ -1,0 +1,75 @@
+---
+deskpro_php_default_ini_common:
+  PHP:
+    date.timezone: 'UTC'
+    extension:
+      - bcmath.so
+      - calendar.so
+      - ctype.so
+      - curl.so
+      - dom.so
+      - exif.so
+      - fileinfo.so
+      - ftp.so
+      - gd.so
+      - gettext.so
+      - iconv.so
+      - imap.so
+      - intl.so
+      - json.so
+      - ldap.so
+      - mbstring.so
+      - mcrypt.so
+      - mysqlnd.so
+      - mysqli.so
+      - odbc.so
+      - pdo.so
+      - pdo_mysql.so
+      - pdo_odbc.so
+      - pdo_sqlite.so
+      - phar.so
+      - posix.so
+      - shmop.so
+      - simplexml.so
+      - soap.so
+      - sockets.so
+      - sqlite3.so
+      - sysvmsg.so
+      - sysvsem.so
+      - sysvshm.so
+      - tokenizer.so
+      - xmlreader.so
+      - xml.so
+      - xmlwriter.so
+      - xsl.so
+      - wddx.so
+      - zip.so
+    memory_limit: 1024M
+    short_open_tag: 'off'
+    zend_extension: opcache.so
+  opcache:
+    opcache.enable_cli: 1
+    opcache.memory_consumption: 1024
+
+deskpro_php_default_ini:
+  cli: "{{deskpro_php_default_ini_common}}"
+  fpm: "{{deskpro_php_default_ini_common}}"
+
+deskpro_php_fpm_default_config:
+  global:
+    pid: "{{deskpro_php_fpm_pid_file}}"
+    daemonize: "no"
+    error_log: "{{deskpro_php_fpm_error_log}}"
+
+deskpro_php_fpm_default_pools:
+  www:
+    user: "{{deskpro_php_fpm_user}}"
+    group: "{{deskpro_php_fpm_group}}"
+    listen: "{{deskpro_php_fpm_socket}}"
+    listen.owner: "{{deskpro_php_fpm_user}}"
+    listen.group: "{{deskpro_php_fpm_group}}"
+    pm: dynamic
+    pm.max_children: 16
+    pm.start_servers: 1
+    pm.min_spare_servers: 1
+    pm.max_spare_servers: 5

@@ -1,0 +1,18 @@
+[req]
+default_bits = 4096
+default_keyfile = admin.key
+default_md = sha256
+distinguished_name = client_distinguished_name
+encrypt_key = no
+prompt = no
+req_extensions = client_extensions
+
+[client_distinguished_name]
+OU = deskpro-vm
+CN = admin
+
+[client_extensions]
+subjectAltName = @client_subject_alt_name
+
+[client_subject_alt_name]
+DNS.1 = admin

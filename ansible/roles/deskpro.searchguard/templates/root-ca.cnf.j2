@@ -1,0 +1,59 @@
+[req]
+default_bits = 4096
+default_keyfile = ca/root-ca.key
+default_md = sha256
+distinguished_name = ca_distinguished_name
+encrypt_key = no
+prompt = no
+utf8 = yes
+x509_extensions = ca_extensions
+
+[ca_distinguished_name]
+OU = deskpro-vm
+CN = root ca
+
+[ca_extensions]
+basicConstraints = critical,CA:true
+nameConstraints = critical,permitted;dirName:ca_name_constraints
+keyUsage = critical,keyCertSign,cRLSign
+# order matters
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+
+[ca_name_constraints]
+OU = deskpro-vm
+
+[ca]
+default_ca = default_ca
+
+[default_ca]
+certificate = ca/root-ca.crt
+copy_extensions = copy
+database = ca/db/database.txt
+default_days = 720
+default_md = sha256
+email_in_dn = no
+new_certs_dir = ca/certs
+policy = policy
+private_key = ca/root-ca.key
+serial = ca/db/serial.txt
+
+[policy]
+OU = match
+CN = supplied
+
+[node_extensions]
+basicConstraints = CA:false
+extendedKeyUsage = serverAuth, clientAuth
+keyUsage = critical, digitalSignature, keyEncipherment
+
+subjectKeyIdentifier = hash
+authorityKeyIdentifier  = keyid:always
+
+[client_extensions]
+basicConstraints = CA:false
+extendedKeyUsage = clientAuth
+keyUsage = critical, digitalSignature, keyEncipherment
+
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always

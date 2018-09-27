@@ -1,0 +1,5 @@
+---
+deskpro_tika_service_name: apache-tika
+deskpro_tika_jar_url: "https://archive.apache.org/dist/tika/tika-server-1.17.jar"
+deskpro_tika_jar_sha256sum: 286c693134a115ac2bf452e5f1569dfa9eb928b9658c22a147f56cf01bfb4639
+deskpro_tika_jar_path: /usr/share/java/tika-server-1.17.jar

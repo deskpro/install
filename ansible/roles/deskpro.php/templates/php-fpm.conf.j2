@@ -1,0 +1,25 @@
+; {{ansible_managed}}
+
+;;;;;;;;;;;;;;;
+; Main config ;
+;;;;;;;;;;;;;;;
+
+{% for section, data in (deskpro_php_fpm_config | default(deskpro_php_fpm_default_config)).items() %}
+[{{section}}]
+{% for key, value in data.items() %}
+{{key}} = {{value}}
+{% endfor %}
+
+{% endfor %}
+
+;;;;;;;;;;;;;;;;;;;;
+; Pool definitions ;
+;;;;;;;;;;;;;;;;;;;;
+{% for name, data in (deskpro_php_fpm_pools | default(deskpro_php_fpm_default_pools)).items() %}
+[{{name}}]
+{% for key, value in data.items() %}
+{{key}} = {{value}}
+{% endfor %}
+
+{% endfor %}
+

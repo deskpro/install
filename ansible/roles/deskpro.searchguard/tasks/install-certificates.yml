@@ -1,0 +1,107 @@
+---
+- name: Create the PKI directories
+  file:
+    path: "{{item}}"
+    owner: root
+    group: elasticsearch
+    mode: 02750
+    state: directory
+  with_items:
+    - /etc/elasticsearch/pki
+    - /etc/elasticsearch/pki/ca
+    - /etc/elasticsearch/pki/ca/certs
+    - /etc/elasticsearch/pki/ca/db
+    - /etc/elasticsearch/pki/csr
+
+- name: Check if the admin certificate exists
+  stat:
+    path: /etc/elasticsearch/pki/admin.crt
+  register: admin_crt
+
+- name: Create certificates
+  block:
+    - name: Create temporary working path
+      tempfile:
+        prefix: "es-sg-"
+        state: directory
+      register: tmpdir
+
+    - name: Create the database file
+      file:
+        path: /etc/elasticsearch/pki/ca/db/database.txt
+        state: touch
+
+    - name: Create the serial file
+      copy:
+        dest: /etc/elasticsearch/pki/ca/db/serial.txt
+        content: '01'
+
+    - name: Create the openssl config files
+      template:
+        src: "{{item}}.j2"
+        dest: "{{tmpdir.path}}/{{item}}"
+      with_items:
+        - root-ca.cnf
+        - node.cnf
+        - client.cnf
+
+    - name: Create the root CA cert and key
+      command: "openssl req -config {{tmpdir.path}}/root-ca.cnf -x509 -newkey rsa -out ca/root-ca.crt"
+      args:
+        chdir: /etc/elasticsearch/pki
+
+    - name: Create the node CSR
+      command: "openssl req -config {{tmpdir.path}}/node.cnf -new -newkey rsa -out csr/node.csr"
+      args:
+        chdir: /etc/elasticsearch/pki
+
+    - name: Sign the node CSR
+      command: "openssl ca -config {{tmpdir.path}}/root-ca.cnf -batch -extensions node_extensions -in csr/node.csr -out node.crt"
+      args:
+        chdir: /etc/elasticsearch/pki
+
+    - name: Create the admin CSR
+      command: "openssl req -config {{tmpdir.path}}/client.cnf -new -newkey rsa -out csr/admin.csr"
+      args:
+        chdir: /etc/elasticsearch/pki
+
+    - name: Sign the admin CSR
+      command: "openssl ca -config {{tmpdir.path}}/root-ca.cnf -batch -extensions client_extensions -in csr/admin.csr -out admin.crt"
+      args:
+        chdir: /etc/elasticsearch/pki
+
+    - name: Ensure elasticsearch will be able to read node.key
+      file:
+        path: /etc/elasticsearch/pki/node.key
+        group: elasticsearch
+        mode: 0440
+  always:
+    - name: Delete temporary directory
+      file:
+        path: "{{tmpdir.path}}"
+        state: absent
+  when: not admin_crt.stat.exists
+
+- name: Add the certificate to the system (RedHat)
+  file:
+    src: /etc/elasticsearch/pki/ca/root-ca.crt
+    dest: /etc/pki/ca-trust/source/anchors/searchguard.crt
+    state: link
+  when: ansible_os_family == 'RedHat'
+  register: redhat_cert_link
+
+- name: Add the certificate to the system (Debian)
+  file:
+    src: /etc/elasticsearch/pki/ca/root-ca.crt
+    dest: /usr/local/share/ca-certificates/searchguard.crt
+    state: link
+  when: ansible_os_family == 'Debian'
+  register: debian_cert_link
+
+- name: Update CA certificates (RedHat)
+  command: update-ca-trust extract
+  when: ansible_os_family == 'RedHat' and redhat_cert_link.changed
+
+- name: Update CA certificates (Debian)
+  command: update-ca-certificates
+  when: ansible_os_family == 'Debian' and debian_cert_link.changed

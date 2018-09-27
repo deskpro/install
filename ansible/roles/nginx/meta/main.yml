@@ -1,4 +1,0 @@
----
-dependencies:
-  - role: jdauphant.nginx
-    nginx_sites: {}

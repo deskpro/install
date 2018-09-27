@@ -1,0 +1,11 @@
+description "Apache Tika Server"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+respawn limit 5 60
+
+setuid nobody
+
+exec java -jar {{deskpro_tika_jar_path}} --host {{deskpro_tika_host}} --port {{deskpro_tika_port}}

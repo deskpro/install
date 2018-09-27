@@ -1,0 +1,9 @@
+---
+deskpro_mysql_packages:
+  - mariadb-server
+  - python-mysqldb
+deskpro_mysql_service_name: mysql
+deskpro_mysql_config_path: /etc/mysql/my.cnf
+
+deskpro_mysql_socket: /var/run/mysqld/mysqld.sock
+deskpro_mysql_pid_file: /var/run/mysqld/mysqld.pid

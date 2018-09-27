@@ -1,6 +1,0 @@
----
-- name: Install an NTP client for Ubuntu Trusty
-  apt:
-    name: ntp
-    cache_valid_time: 86400
-  when: ansible_distribution_release == 'trusty'

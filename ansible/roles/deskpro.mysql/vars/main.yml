@@ -1,0 +1,38 @@
+---
+deskpro_mysql_default_config:
+  client:
+    default_character_set: utf8mb4
+    port: "{{deskpro_mysql_port}}"
+    socket: "{{deskpro_mysql_socket}}"
+  mysqld:
+    basedir: /usr
+    bind_address: "{{deskpro_mysql_bind_address}}"
+    character_set_server: utf8mb4
+    collation_server: utf8mb4_general_ci
+    datadir: /var/lib/mysql
+    default_storage_engine: InnoDB
+    expire_logs_days: 10
+    lc_messages_dir: /usr/share/mysql
+    max_allowed_packet: 16M
+    max_binlog_size: 100M
+    pid_file: "{{deskpro_mysql_pid_file}}"
+    port: "{{deskpro_mysql_port}}"
+    query_cache_limit: 1M
+    query_cache_size: 16M
+    skip_external_locking:
+    socket: "{{deskpro_mysql_socket}}"
+    symbolic_links: 0
+    thread_cache_size: 8
+    thread_stack: 192K
+    tmpdir: /tmp
+    user: mysql
+  mysqld_safe:
+    log_syslog: 1
+    nice: 0
+    pid_file: "{{deskpro_mysql_pid_file}}"
+    socket: "{{deskpro_mysql_socket}}"
+    syslog:
+  mysqldump:
+    max_allowed_packet: 16M
+    quick:
+    quote_names:

@@ -1,0 +1,26 @@
+---
+deskpro_elasticsearch_config: {}
+deskpro_elasticsearch_plugins: []
+deskpro_elasticsearch_start_service: yes
+deskpro_elasticsearch_version: "5.6.7"
+deskpro_elasticsearch_memory: "512m"
+deskpro_elasticsearch_jvm_options:
+  - "-Xms{{deskpro_elasticsearch_memory}}"
+  - "-Xmx{{deskpro_elasticsearch_memory}}"
+  - "-XX:+UseConcMarkSweepGC"
+  - "-XX:CMSInitiatingOccupancyFraction=75"
+  - "-XX:+UseCMSInitiatingOccupancyOnly"
+  - "-XX:+AlwaysPreTouch"
+  - "-server"
+  - "-Xss1m"
+  - "-Djava.awt.headless=true"
+  - "-Dfile.encoding=UTF-8"
+  - "-Djna.nosys=true"
+  - "-Djdk.io.permissionsUseCanonicalPath=true"
+  - "-Dio.netty.noUnsafe=true"
+  - "-Dio.netty.noKeySetOptimization=true"
+  - "-Dio.netty.recycler.maxCapacityPerThread=0"
+  - "-Dlog4j.shutdownHookEnabled=false"
+  - "-Dlog4j2.disable.jmx=true"
+  - "-Dlog4j.skipJansi=true"
+  - "-XX:+HeapDumpOnOutOfMemoryError"

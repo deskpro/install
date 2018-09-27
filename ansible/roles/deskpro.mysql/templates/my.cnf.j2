@@ -1,0 +1,8 @@
+{% for section, items in (deskpro_mysql_default_config | combine(deskpro_mysql_config, recursive=True)).items() %}
+[{{section}}]
+{% for key, value in items.items() %}
+{{key}}{% if value is not none %} = {{value}}{% endif %}
+
+{% endfor %}
+
+{% endfor %}

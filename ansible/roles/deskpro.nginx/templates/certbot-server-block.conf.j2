@@ -1,0 +1,11 @@
+# {{ansible_managed}}
+
+server {
+	listen 80;
+
+	server_name {{item.domains | join(' ')}};
+
+	location /.well-known {
+		root {{item.certbot.webroot}};
+	}
+}

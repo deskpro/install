@@ -1,0 +1,6 @@
+---
+- name: restart elasticsearch
+  service:
+    name: elasticsearch
+    state: restarted
+  when: not deskpro_elasticsearch_already_restarted

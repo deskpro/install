@@ -1,0 +1,18 @@
+---
+- name: Install HTTPS apt transport
+  apt:
+    name: apt-transport-https
+
+- name: Install packages.sury.org DPA
+  apt_repository:
+    repo: "deb https://packages.sury.org/php/ jessie main"
+
+- name: Add packages.sury.org GPG key
+  apt_key:
+    url: "https://packages.sury.org/php/apt.gpg"
+
+- name: Install PHP packages
+  apt:
+    name: "{{item}}"
+    update_cache: yes
+  with_items: "{{deskpro_php_default_packages | union(deskpro_php_packages)}}"

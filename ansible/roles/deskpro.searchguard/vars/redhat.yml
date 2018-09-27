@@ -1,0 +1,5 @@
+---
+deskpro_searchguard_packages:
+  - py-bcrypt
+  - python-ndg_httpsclient
+  - python-requests

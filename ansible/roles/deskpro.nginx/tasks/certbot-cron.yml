@@ -1,0 +1,7 @@
+---
+- name: Install cron jobs to renew certificates
+  cron:
+    name: "certbot renew for {{item.domains | first}}"
+    hour: 3
+    job: "certbot renew --config /etc/letsencrypt/config/{{item.domains | first}}.ini"
+  with_items: "{{deskpro_nginx_certbot_certificates}}"
