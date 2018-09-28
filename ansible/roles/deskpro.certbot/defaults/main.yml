@@ -1,0 +1,26 @@
+---
+# A list of hashes with the description of certificates and domains to work
+# with. Has the following format:
+#
+# deskpro_certbot_certificates:
+#   - name: some-certificate
+#     domains:
+#       - happypotato.com
+#       - sadpotato.com
+#     email: idontreallyown@these.domains.com
+#   - name: other-certificate
+#     domains:
+#       - justme.com
+#     email: thisis@required.com
+#     post-hook: optional command to run after cert renew
+#   - name: deskpro-domain-for-something.com
+#     domains:
+#       - deskpro-domain-for-something.com
+#       - www.deskpro-domain-for-something.com
+#     email: always.required.the@email.is
+#     post_hook: systemctl reload my-awesome-web-server
+deskpro_certbot_certificates: {}
+
+# Extra arguments to pass to the `certbot` command in case you know what you're
+# doing. Used in testing to set `--staging`
+deskpro_certbot_arguments: ''

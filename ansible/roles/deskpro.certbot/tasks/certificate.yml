@@ -1,0 +1,11 @@
+- name: Create configuration files
+  template:
+    src: certbot-config.ini.j2
+    dest: "/etc/letsencrypt/config/{{certificate.name}}.ini"
+
+- name: Request cert
+  command: "certbot certonly {{deskpro_certbot_extra_arguments}} --config /etc/letsencrypt/config/{{certificate.name}}.ini"
+  register: certbotout
+
+- debug:
+    msg: "{{certbotout.stdout}}"

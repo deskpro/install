@@ -1,0 +1,38 @@
+---
+- include: "install-{{ansible_distribution | lower}}.yml"
+
+- name: Ensure config dir exists
+  file:
+    path: /etc/letsencrypt/config
+    mode: 0700
+    state: directory
+
+- name: Ensure webroot exists
+  file:
+    path: "{{item}}"
+    mode: 0755
+    state: directory
+  with_items:
+    - /var/lib/certbot
+    - /var/lib/certbot/.well-known
+
+- include: certificate.yml
+  with_items: "{{deskpro_certbot_certificates}}"
+  loop_control:
+    loop_var: certificate
+
+- name: Create nginx block variable from config
+  set_fact:
+    deskpro_certbot_nginx_block: |
+      {% for certificate in deskpro_certbot_certificates %}
+      server {
+        listen 80;
+        server_name {{certificate.domains | join(' ')}};
+
+        location /.well-known {
+          root /var/lib/certbot;
+        }
+      }
+      {% endfor %}
+
+- debug: var=deskpro_certbot_nginx_block

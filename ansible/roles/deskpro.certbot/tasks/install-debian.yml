@@ -1,0 +1,9 @@
+---
+- name: Add Jessie backports
+  apt_repository:
+    repo: "deb http://ftp.debian.org/debian jessie-backports main"
+
+- name: Install Certbot
+  apt:
+    name: certbot
+    default_release: jessie-backports

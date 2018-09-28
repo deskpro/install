@@ -1,0 +1,52 @@
+# {{ansible_managed}}
+
+# Agree to the ACME Subscriber Agreement
+agree-tos = True
+
+# Authenticator plugin name
+authenticator = webroot
+
+# Certificate name to apply. Only one certificate name can be used per Certbot
+# run. To see certificate names, run 'certbot certificates'. When creating a
+# new certificate, specifies the new certificate's name
+cert-name = {{certificate.name}}
+
+# Domain names to apply. For multiple domains you can use multiple -d flags or
+# enter a comma separated list of domains as a parameter
+domains = {{certificate.domains | join(',')}}
+
+# Email used for registration and recovery contact.
+email = {{certificate.email}}
+
+# If the requested cert matches an existing cert, always keep the existing one
+# until it is due for renewal (for the 'run' subcommand this means reinstall
+# the existing cert)
+keep-until-expiring = True
+
+# Run without ever asking for user input. This may require additional command
+# line flags; the client will try to explain which ones are required if it
+# finds one missing
+non-interactive = True
+
+# Command to be run in a shell after attempting to obtain/renew certificates.
+# Can be used to deploy renewed certificates, or to restart any servers that
+# were stopped by --pre-hook. This is only run if an attempt was made to
+# obtain/renew a certificate
+post-hook = {{certificate.post_hook | default('systemctl reload nginx')}}
+
+# If a certificate already exists for the requested certificate name but does
+# not match the requested domains, renew it now, regardless of whether it is
+# near expiry
+renew-with-new-domains = True
+
+# Size of the RSA key. (default: 2048)
+rsa-key-size = 4096
+
+# Use the text output instead of the curses UI
+text = True
+
+# public_html / webroot path. This can be specified multiple times to handle
+# different domains; each domain will have the webroot path that preceded it.
+# For instance: `-w /var/www/example -d example.com -d # www.example.com -w
+# /var/www/thing -d thing.net -d m.thing.net`
+webroot-path = /var/lib/certbot
