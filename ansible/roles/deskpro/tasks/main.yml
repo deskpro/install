@@ -14,7 +14,7 @@
 - name: Ensure base directory exists
   file:
     group: "{{deskpro_php_fpm_group}}"
-    mode: 0770
+    mode: 02770
     owner: "{{deskpro_user}}"
     path: "{{deskpro_install_root}}"
     recurse: yes
@@ -35,69 +35,20 @@
 
 - name: Install Deskpro
   block:
-    - name: Download Deskpro
-      get_url:
-        url: "{{deskpro_zip_url}}"
-        dest: /usr/local/src/deskpro.zip
-
-    - name: Extract Deskpro
-      command: unzip /usr/local/src/deskpro.zip
-      args:
-        chdir: "{{deskpro_install_root}}"
-        warn: false
-
-    - name: Ensure correct permissions
-      file:
-        path: "{{deskpro_install_root}}"
-        owner: "{{deskpro_user}}"
-        group: "{{deskpro_php_fpm_group}}"
-        recurse: yes
-
-    - name: Create profile
-      template:
-        src: profile.json.j2
-        dest: "{{deskpro_profile_path}}"
-        owner: "{{deskpro_user}}"
-        mode: 0400
-
-    - name: Install Deskpro
-      command: "/usr/bin/php {{deskpro_install_root}}/bin/install --profile {{deskpro_profile_path}} -n -x file_integrity"
-      become: yes
-      become_user: "{{deskpro_user}}"
-
-    - name: Delete profile
-      file:
-        path: "{{deskpro_profile_path}}"
-        state: absent
-
-    - name: Wait for Elasticsearch
-      wait_for:
-        port: "{{deskpro_elasticsearch_port}}"
-        host: "{{deskpro_elasticsearch_host}}"
-        delay: 5
-
-    - name: Enable and populate Elasticsearch for Deskpro
-      command: "{{deskpro_install_root}}/bin/console dp:config:elastic '{{deskpro_elasticsearch_address}}'"
-      become: yes
-      become_user: "{{deskpro_user}}"
-
-    - name: Enable Apache Tika for Deskpro
-      deskpro_setting:
-        name: "{{item.name}}"
-        value: "{{item.value}}"
-      with_items:
-        - name: elastica.tika.enabled
-          value: 1
-        - name: elastica.tika.ip_address
-          value: "{{deskpro_tika_host}}"
-        - name: elastica.tika.port
-          value: "{{deskpro_tika_port}}"
-
-    - name: Turn on URL rewrite
-      deskpro_setting:
-        name: core.rewrite_urls
-        value: 1
-
+    - block:
+        - name: Download Deskpro
+          get_url:
+            url: "{{deskpro_zip_url}}"
+            dest: /usr/local/src/deskpro.zip
+            force: no
+      rescue:
+        - file:
+            path: /usr/local/src/deskpro.zip
+            state: absent
+        - fail:
+            msg: Unable to download Deskpro
+    - include: extract-and-install.yml
+      when: not deskpro_download_only
   when: not (build_num_file.stat.exists and build_num_file.stat.isreg)
 
 - name: Set Deskpro folder permissions
@@ -108,6 +59,7 @@
     path: "{{deskpro_install_root}}"
     recurse: yes
     state: directory
+  when: not deskpro_download_only
 
 - name: Set SELinux type for httpd_t writable directories
   file:
@@ -115,7 +67,7 @@
     state: directory
     recurse: yes
     setype: httpd_sys_rw_content_t
-  when: ansible_selinux.status == 'enabled'
+  when: ansible_selinux.status == 'enabled' and not deskpro_download_only
   with_items:
     - "{{deskpro_install_root}}/attachments/"
     - "{{deskpro_install_root}}/var/"
@@ -126,7 +78,7 @@
     state: directory
     recurse: yes
     setype: httpd_sys_content_t
-  when: ansible_selinux.status == 'enabled'
+  when: ansible_selinux.status == 'enabled' and not deskpro_download_only
   with_items:
     - "{{deskpro_install_root}}/app"
     - "{{deskpro_install_root}}/config"
@@ -152,9 +104,11 @@
     env: yes
     value: /
     user: "{{deskpro_user}}"
+  when: not deskpro_download_only
 
 - name: Install cron job
   cron:
     name: Deskpro cron job
     user: "{{deskpro_user}}"
     job: "{{deskpro_install_root}}/bin/cron"
+  when: not deskpro_download_only

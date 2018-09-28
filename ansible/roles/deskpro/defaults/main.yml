@@ -13,3 +13,5 @@ deskpro_database_password: deskpropassword
 deskpro_elasticsearch_host: localhost
 deskpro_elasticsearch_port: 9200
 deskpro_elasticsearch_address: "https://deskpro:{{deskpro_searchguard_deskpro_password}}@{{deskpro_elasticsearch_host}}:{{deskpro_elasticsearch_port}}/"
+
+deskpro_download_only: false
