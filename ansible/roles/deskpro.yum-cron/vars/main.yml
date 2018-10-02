@@ -1,0 +1,44 @@
+---
+deskpro_yum_cron_default_config:
+  commands:
+    update_cmd: 'minimal-security'
+    update_messages: 'yes'
+    download_updates: 'yes'
+    apply_updates: 'yes'
+    random_sleep: 360
+  emitters:
+    system_name: 'None'
+    emit_via: 'stdio'
+    output_width: 80
+  email:
+    email_from: 'root@localhost'
+    email_to: 'root'
+    email_host: 'localhost'
+  groups:
+    group_list: 'None'
+    group_package_types: 'mandatory, default'
+  base:
+    debuglevel: '-2'
+    mdpolicy: 'group:main'
+
+deskpro_yum_cron_default_hourly_config:
+  commands:
+    update_cmd: 'minimal-security-severity:Critical'
+    update_messages: 'yes'
+    download_updates: 'yes'
+    apply_updates: 'yes'
+    random_sleep: '15'
+  emitters:
+    system_name: 'None'
+    emit_via: 'stdio'
+    output_width: '80'
+  email:
+    email_from: 'root'
+    email_to: 'root'
+    email_host: 'localhost'
+  groups:
+    group_list: 'None'
+    group_package_types: 'mandatory, default'
+  base:
+    debuglevel: '-2'
+    mdpolicy: 'group:main'

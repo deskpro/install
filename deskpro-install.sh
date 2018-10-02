@@ -11,7 +11,7 @@ SUDO=''
 UNBUFFER='stdbuf -i0 -o0 -e0'
 MYSQL_PASS=''
 FULL_LOG_FILE=''
-LOG_HELPER="/usr/local/bin/deskpro-log-helper"
+LOG_HELPER="/usr/bin/deskpro-log-helper"
 LOG_COMMAND="$LOG_HELPER --ignore-errors"
 DISTRO='Unknown'
 SKIP_LOGS=false
@@ -315,7 +315,7 @@ change_mysql_password() {
 run_ansible() {
 	local playbook=$1
 
-	$SUDO ansible-playbook -i 127.0.0.1, "$playbook" 2>&1 | $UNBUFFER tee --append "$FULL_LOG_FILE"
+	$SUDO ansible-playbook -i 127.0.0.1, "$playbook" -e deskpro_database_password=dummydbpass 2>&1 | $UNBUFFER tee --append "$FULL_LOG_FILE"
 }
 
 install_deskpro() {
@@ -324,15 +324,15 @@ install_deskpro() {
 	cd "$ANSIBLE_DIR"
 
 	info_message -n 'Installing role dependencies... '
-	ansible-galaxy install -r requirements.yml -i -p roles >>"${FULL_LOG_FILE}" 2>&1
+	ansible-galaxy install -r requirements.yml -i >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 
-	run_ansible log-helper.yml
+	run_ansible prepare-host.yml
 
 	$LOG_COMMAND start
 	SECONDS=0
 
-	if run_ansible full-install.yml ; then
+	if run_ansible install-regular.yml ; then
 		$LOG_COMMAND success --duration $SECONDS
 	else
 		local -r error_json=$(tail "$FULL_LOG_FILE" | grep ^fatal: | sed 's/.*FAILED! => //')

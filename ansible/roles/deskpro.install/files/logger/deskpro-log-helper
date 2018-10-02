@@ -69,7 +69,7 @@ def log_success(args):
 
     install_uuid = get_install_uuid()
 
-    log_post_json(log_id, 'success', {
+    log_post_json(install_uuid, 'success', {
         'duration': args.duration
     })
 
@@ -79,7 +79,7 @@ def log_failure(args):
 
     install_uuid = get_install_uuid()
 
-    log_post_json(log_id, 'error', {
+    log_post_json(install_uuid, 'error', {
         'duration': args.duration,
         'summary': args.summary,
     })
@@ -91,7 +91,7 @@ def log_upload(args):
     with open(args.file) as logfile:
         log = logfile.read()
 
-    log_post_json(log_id, 'logs', log)
+    log_post_json(install_uuid, 'logs', log)
 
 
 def build_parser():

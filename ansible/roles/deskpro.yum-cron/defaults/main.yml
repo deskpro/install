@@ -1,0 +1,10 @@
+---
+# these two variables can be used to customize the yum-cron config. They will
+# be merged to the default values in vars/main.yml
+deskpro_yum_cron_config:
+  commands:
+    random_sleep: 10
+
+deskpro_yum_cron_hourly_config:
+  commands:
+    random_sleep: 5

@@ -1,0 +1,28 @@
+---
+- name: Include OS-specific vars
+  include_vars: "{{item}}"
+  with_first_found:
+    - "{{ansible_distribution | lower}}.yml"
+    - "{{ansible_os_family | lower}}.yml"
+
+- name: Run OS-specific install
+  include: "{{item}}"
+  with_first_found:
+    - files:
+        - "install-{{ansible_distribution | lower}}.yml"
+      skip: yes
+
+- name: Install dependencies
+  package:
+    name: "{{item}}"
+  with_items: "{{deskpro_boot_screen_dependencies}}"
+
+- name: Install boot screen binaries
+  template:
+    src: "{{item.src}}"
+    dest: "/usr/bin/{{item.path}}"
+    mode: 0755
+  with_filetree: boot-screen
+  when: item.state == "file"
+  loop_control:
+    label: "{{item.path}}"

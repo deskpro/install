@@ -1,0 +1,9 @@
+---
+- hosts: all
+  roles:
+    - role: deskpro.boot-screen
+  tasks:
+    - name: start boot screen service to perform tests
+      service:
+        name: deskpro-boot-screen
+        state: started

@@ -1,0 +1,6 @@
+---
+dependencies:
+  - role: jnv.unattended-upgrades
+    when: ansible_os_family | lower == "debian"
+  - role: deskpro.yum-cron
+    when: ansible_os_family | lower == "redhat"

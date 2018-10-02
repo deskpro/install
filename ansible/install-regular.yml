@@ -1,11 +1,9 @@
-# vim:ft=ansible
 ---
 - name: Install Deskpro
   hosts: localhost
   connection: local
   become: yes
   roles:
-    - role: geerlingguy.postfix
     - role: geerlingguy.ntp
     - role: deskpro
     - role: deskpro.certbot
@@ -14,7 +12,4 @@
         - "22"
         - "80"
         - "443"
-    - role: geerlingguy.security
-      security_ssh_password_authentication: "yes"
-      security_ssh_permit_root_login: "yes"
-      security_fail2ban_enabled: no
+    - role: deskpro.security-updates

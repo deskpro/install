@@ -1,21 +1,4 @@
 ---
-deskpro_site_root: "/usr/share/nginx/html/deskpro"
-deskpro_data_root: "/usr/share/nginx/deskprodata"
-deskpro_share_root: "/usr/share/deskpro"
-
-deskpro_php_fpm_socket: "/var/run/deskpro-php-fpm.sock"
-
-deskpro_database_user_password: mysqlpasswordchangeme
-
-deskpro_run_once_cron_name: "deskpro-run-once"
-
-install_failed_filename: "/root/.install-failed"
 first_run_filename: "/root/.this-is-the-first-run"
-
-deskpro_install_uuid_filename: ".deskpro-install-uuid"
-
+install_failed_filename: "/root/.install-failed"
 install_in_progress_filename: "/root/.install-in-progress"
-
-deskpro_zip_url: "{{lookup('env', 'DESKPRO_ZIP_URL') | default('https://www.deskpro.com/downloads/deskpro.zip', true)}}"
-
-deskpro_profile_path: "/var/tmp/deskpro-install-profile.json"

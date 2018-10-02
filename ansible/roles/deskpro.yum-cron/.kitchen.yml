@@ -1,0 +1,32 @@
+---
+driver:
+  name: vagrant
+  provider: virtualbox
+  synced_folders:
+    - ['../../', '/tmp/repo-dir/']
+  customize:
+    memory: 384
+
+provisioner:
+  hosts: all
+  name: ansible_playbook
+  require_chef_for_busser: false
+  require_ruby_for_busser: false
+  require_ansible_omnibus: true
+  ansible_versbose: yes
+  ansible_omnibus_url: file:///tmp/repo-dir/ansible-omnibus.sh
+  additional_copy_role_path:
+    - ../../extra-roles
+    - ../../roles
+
+verifier:
+  name: inspec
+
+platforms:
+  - name: centos-7
+
+suites:
+  - name: default
+
+transport:
+  max_ssh_sessions: 6

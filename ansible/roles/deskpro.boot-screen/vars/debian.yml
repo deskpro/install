@@ -1,0 +1,5 @@
+---
+deskpro_boot_screen_dependencies:
+  - python3-netifaces
+  - python3-systemd
+  - python3-urwid

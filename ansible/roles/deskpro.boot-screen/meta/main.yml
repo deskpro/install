@@ -1,0 +1,25 @@
+---
+dependencies:
+  - role: deskpro.service
+    deskpro_units:
+      - name: deskpro-boot-screen.service
+        enabled: yes
+        data:
+          Unit:
+            Description: Deskpro VM boot screen
+            Conflicts: getty@tty1.service
+            After: getty@tty1.service
+          Service:
+            ExecStartPre: /usr/bin/setterm -powerdown 0 -blank 0
+            ExecStart: /usr/bin/deskpro-vm-config
+            ExecStopPost:
+              - /usr/bin/setterm -blank 2
+              - /bin/systemctl --no-block start getty@tty1.service
+            StandardInput: tty
+            StandardOutput: tty
+            StandardError: syslog
+            TTYPath: /dev/tty1
+            TTYReset: 'yes'
+            TTYVHangup: 'yes'
+            TTYVTDisallocate: 'yes'
+            Type: notify

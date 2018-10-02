@@ -1,0 +1,9 @@
+# {{ansible_managed}}
+
+{% for section, data in deskpro_yum_cron_template_config.items() %}
+[{{section}}]
+{% for key, value in data.items() %}
+{{key}} = {{value}}
+{% endfor %}
+
+{% endfor %}

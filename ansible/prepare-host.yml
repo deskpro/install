@@ -1,0 +1,7 @@
+---
+- name: Prepare host to receive a Deskpro installation
+  hosts: localhost
+  connection: local
+  become: yes
+  roles:
+    - role: deskpro.install

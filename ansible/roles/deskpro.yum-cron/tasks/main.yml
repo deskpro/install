@@ -1,0 +1,22 @@
+---
+- name: Install yum-cron
+  yum:
+    name: yum-cron
+
+- name: Install yum-cron config files
+  template:
+    src: yum-cron.j2
+    dest: "{{item.dest}}"
+  vars:
+    deskpro_yum_cron_template_config: "{{item.config}}"
+  with_items:
+    - dest: /etc/yum/yum-cron.conf
+      config: "{{deskpro_yum_cron_default_config | combine(deskpro_yum_cron_config, recursive=True)}}"
+    - dest: /etc/yum/yum-cron-hourly.conf
+      config: "{{deskpro_yum_cron_default_hourly_config | combine(deskpro_yum_cron_hourly_config, recursive=True)}}"
+
+- name: Enable the yum-cron service
+  service:
+    name: yum-cron
+    state: started
+    enabled: yes

@@ -1,0 +1,60 @@
+---
+- name: Extract Deskpro
+  command: unzip /usr/local/src/deskpro.zip
+  args:
+    chdir: "{{deskpro_install_root}}"
+    warn: false
+
+- name: Ensure correct permissions
+  file:
+    path: "{{deskpro_install_root}}"
+    owner: "{{deskpro_user}}"
+    group: "{{deskpro_php_fpm_group}}"
+    recurse: yes
+
+- name: Create profile
+  template:
+    src: profile.json.j2
+    dest: "{{deskpro_profile_path}}"
+    owner: "{{deskpro_user}}"
+    mode: 0400
+
+- name: Install Deskpro
+  command: "/usr/bin/php {{deskpro_install_root}}/bin/install --profile {{deskpro_profile_path}} -n -x file_integrity"
+  become: yes
+  become_user: "{{deskpro_user}}"
+
+- name: Delete profile
+  file:
+    path: "{{deskpro_profile_path}}"
+    state: absent
+
+- name: Wait for Elasticsearch
+  wait_for:
+    port: "{{deskpro_elasticsearch_port}}"
+    host: "{{deskpro_elasticsearch_host}}"
+    delay: 5
+
+- name: Enable and populate Elasticsearch for Deskpro
+  command: "{{deskpro_install_root}}/bin/console dp:config:elastic '{{deskpro_elasticsearch_address}}'"
+  become: yes
+  become_user: "{{deskpro_user}}"
+
+- name: Enable Apache Tika for Deskpro
+  deskpro_setting:
+    name: "{{item.name}}"
+    value: "{{item.value}}"
+  with_items:
+    - name: elastica.tika.enabled
+      value: 1
+    - name: elastica.tika.ip_address
+      value: "{{deskpro_tika_host}}"
+    - name: elastica.tika.port
+      value: "{{deskpro_tika_port}}"
+
+- name: Turn on URL rewrite
+  deskpro_setting:
+    name: core.rewrite_urls
+    value: 1
+
+

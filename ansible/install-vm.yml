@@ -1,0 +1,17 @@
+---
+- name: Install Deskpro into the VM
+  hosts: localhost
+  connection: local
+  become: yes
+  roles:
+    - role: geerlingguy.postfix
+    - role: geerlingguy.ntp
+    - role: deskpro
+    - role: deskpro.certbot
+    - role: geerlingguy.firewall
+      firewall_allowed_tcp_ports:
+        - "22"
+        - "80"
+        - "443"
+    - role: deskpro.security-updates
+    - role: deskpro.boot-screen

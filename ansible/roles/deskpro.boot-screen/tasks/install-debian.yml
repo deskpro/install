@@ -1,0 +1,9 @@
+---
+- name: Install the jessie-backports repository
+  apt_repository:
+    repo: 'deb http://ftp.debian.org/debian jessie-backports main'
+
+- name: Install python-systemd from backports
+  apt:
+    name: python-systemd
+    default_release: jessie-backports
