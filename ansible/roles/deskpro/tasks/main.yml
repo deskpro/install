@@ -112,3 +112,28 @@
     user: "{{deskpro_user}}"
     job: "{{deskpro_install_root}}/bin/cron"
   when: not deskpro_download_only
+
+- name: Enable Apache Tika for Deskpro
+  deskpro_setting:
+    name: "{{item.name}}"
+    value: "{{item.value}}"
+  with_items:
+    - name: elastica.tika.enabled
+      value: 1
+    - name: elastica.tika.ip_address
+      value: "{{deskpro_tika_host}}"
+    - name: elastica.tika.port
+      value: "{{deskpro_tika_port}}"
+  when: not deskpro_download_only
+
+- name: Turn on URL rewrite
+  deskpro_setting:
+    name: core.rewrite_urls
+    value: 1
+  when: not deskpro_download_only
+
+- name: Ensure we got the right elasticsearch url
+  deskpro_setting:
+    name: elastica.clients.default.url
+    value: "{{deskpro_elasticsearch_address}}"
+  when: not deskpro_download_only

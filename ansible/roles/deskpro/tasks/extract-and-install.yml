@@ -40,21 +40,3 @@
   become: yes
   become_user: "{{deskpro_user}}"
 
-- name: Enable Apache Tika for Deskpro
-  deskpro_setting:
-    name: "{{item.name}}"
-    value: "{{item.value}}"
-  with_items:
-    - name: elastica.tika.enabled
-      value: 1
-    - name: elastica.tika.ip_address
-      value: "{{deskpro_tika_host}}"
-    - name: elastica.tika.port
-      value: "{{deskpro_tika_port}}"
-
-- name: Turn on URL rewrite
-  deskpro_setting:
-    name: core.rewrite_urls
-    value: 1
-
-
