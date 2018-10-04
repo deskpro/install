@@ -44,4 +44,4 @@ able to use `sudo`.
 
 Instead of installing manually, it's also possible to download a virtual
 machine with DeskPRO already installed. Check out our [Downloads
-page](https://www.deskpro.com/on-premise/) for more information.
+page](https://www.deskpro.com/on-premise-download/) for more information.
