@@ -1,5 +1,5 @@
 ---
-deskpro_searchguard_deskpro_password: "{{lookup('password', deskpro_secrets_path + '/searchguard-deskpro-password length=32')}}"
+deskpro_searchguard_deskpro_password: "{{lookup('password', deskpro_secrets_path + '/searchguard-deskpro-password chars=ascii_letters,digits length=32')}}"
 
 deskpro_searchguard_config:
   searchguard:
