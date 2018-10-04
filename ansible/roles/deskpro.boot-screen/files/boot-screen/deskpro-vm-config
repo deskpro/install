@@ -295,7 +295,7 @@ class RootPasswordDialog(BaseDialog):
             ['/usr/sbin/chpasswd'],
             stdin=subprocess.PIPE,
         )
-        proc.communicate(input=b'root:{}'.format(password1))
+        proc.communicate(input=b':'.join([b'root', password1.encode()]))
 
         # remove first run file - we're not coming back here if this file does
         # not exist
