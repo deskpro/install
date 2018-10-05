@@ -1,0 +1,10 @@
+---
+- name: Copy VM scripts
+  template:
+    dest: "/usr/bin/{{item.path}}"
+    src: "{{item.src}}"
+    mode: 0755
+  with_filetree: bin
+  when: item.state == "file"
+  loop_control:
+    label: "{{item.path}}"

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -eux
+
+if [ "$1" = '--first-run' ]; then
+	trap 'touch /var/lib/deskpro/install-failed' ERR
+fi
+
+cd /usr/share/deskpro/install/ansible
+
+ansible-playbook install-vm.yml
+
+rm -f /var/lib/deskpro/install-in-progress

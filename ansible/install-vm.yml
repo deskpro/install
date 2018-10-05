@@ -15,3 +15,4 @@
         - "443"
     - role: deskpro.security-updates
     - role: deskpro.boot-screen
+    - role: deskpro.vm

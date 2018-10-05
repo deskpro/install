@@ -1,0 +1,16 @@
+---
+dependencies:
+  - role: deskpro.base
+  - role: deskpro.service
+    deskpro_units:
+      - name: deskpro-initial-config.service
+        enabled: yes
+        data:
+          Unit:
+            Description: Deskpro VM initial config
+            ConditionFirstBoot: 'yes'
+            ConditionPathExists: /var/lib/deskpro/first-run
+          Service:
+            ExecStart: /usr/bin/deskpro-vm-reconfigure --first-run
+            RemainAfterExit: 'yes'
+            Type: oneshot
