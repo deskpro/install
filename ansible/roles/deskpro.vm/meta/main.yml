@@ -9,7 +9,6 @@ dependencies:
           Unit:
             Description: Deskpro VM initial config
             ConditionPathExists: /var/lib/deskpro/first-run
-            ConditionFileNotEmpty: '!/etc/machine-id'
           Service:
             ExecStart: /usr/bin/deskpro-vm-reconfigure --first-run
             RemainAfterExit: 'yes'
