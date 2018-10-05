@@ -7,6 +7,8 @@
     - role: geerlingguy.postfix
     - role: geerlingguy.ntp
     - role: deskpro
+      tags:
+        - deskpro.first-run
     - role: deskpro.certbot
     - role: geerlingguy.firewall
       firewall_allowed_tcp_ports:
