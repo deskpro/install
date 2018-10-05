@@ -8,8 +8,8 @@ dependencies:
         data:
           Unit:
             Description: Deskpro VM initial config
-            ConditionFirstBoot: 'yes'
             ConditionPathExists: /var/lib/deskpro/first-run
+            ConditionFileNotEmpty: '!/etc/machine-id'
           Service:
             ExecStart: /usr/bin/deskpro-vm-reconfigure --first-run
             RemainAfterExit: 'yes'
