@@ -2,12 +2,15 @@
 
 set -eux
 
+extra_args=""
+
 if [ "$1" = '--first-run' ]; then
 	trap 'touch /var/lib/deskpro/install-failed' ERR
+	extra_args="--tags deskpro.first-run"
 fi
 
 cd /usr/share/deskpro/install/ansible
 
-ansible-playbook install-vm.yml
+ansible-playbook $extra_args install-vm.yml
 
 rm -f /var/lib/deskpro/install-in-progress

@@ -111,6 +111,7 @@
     name: Deskpro cron job
     user: "{{deskpro_user}}"
     job: "{{deskpro_install_root}}/bin/cron"
+    cron_file: deskpro-cron
   when: not deskpro_download_only
 
 - name: Enable Apache Tika for Deskpro
