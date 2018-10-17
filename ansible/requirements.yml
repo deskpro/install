@@ -1,6 +1,6 @@
 ---
 - src: geerlingguy.php
-  version: "3.2.2"
+  version: "3.6.3"
 - src: geerlingguy.composer
   version: "1.4.1"
 - src: jdauphant.nginx
