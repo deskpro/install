@@ -1,1 +1,1 @@
-elasticsearch_gpgkey: "https://packages.elastic.co/GPG-KEY-elasticsearch"
+elasticsearch_gpgkey: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
