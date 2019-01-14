@@ -6,7 +6,9 @@ playbooks can currently be used with:
 
 * Ubuntu 14.04
 * Ubuntu 16.04
+* Ubuntu 18.04
 * Debian Jessie
+* Debian Stretch
 * CentOS 7
 
 ## Using scripts
