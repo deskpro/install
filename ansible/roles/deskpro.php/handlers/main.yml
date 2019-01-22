@@ -1,0 +1,5 @@
+---
+- name: restart php-fpm
+  service:
+    name: "{{deskpro_php_fpm_service_name}}"
+    state: restarted

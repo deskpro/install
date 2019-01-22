@@ -1,0 +1,39 @@
+---
+deskpro_php_ini_path:
+  cli: /etc/php/7.1/cli/php.ini
+  fpm: /etc/php/7.1/fpm/php.ini
+deskpro_php_ini_search_dir: 
+  cli: /etc/php/7.1/cli/conf.d/
+  fpm: /etc/php/7.1/fpm/conf.d/
+
+deskpro_php_fpm_config_path: /etc/php/7.1/fpm/php-fpm.conf
+deskpro_php_fpm_pool_dir: /etc/php/7.1/fpm/pool.d
+deskpro_php_fpm_pid_file: /run/php/php7.1-fpm.pid
+deskpro_php_fpm_error_log: /var/log/php7.1-fpm.log
+deskpro_php_fpm_user: www-data
+deskpro_php_fpm_group: www-data
+deskpro_php_fpm_service_name: php7.1-fpm
+
+deskpro_php_default_packages:
+  - libpcre3-dev
+  - php7.1-apcu
+  - php7.1-bcmath
+  - php7.1-cli
+  - php7.1-common
+  - php7.1-curl
+  - php7.1-dev
+  - php7.1-fpm
+  - php7.1-gd
+  - php7.1-imap
+  - php7.1-intl
+  - php7.1-json
+  - php7.1-ldap
+  - php7.1-mbstring
+  - php7.1-mcrypt
+  - php7.1-mysql
+  - php7.1-odbc
+  - php7.1-opcache
+  - php7.1-soap
+  - php7.1-sqlite3
+  - php7.1-xml
+  - php7.1-zip

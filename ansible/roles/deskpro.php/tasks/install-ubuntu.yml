@@ -1,0 +1,9 @@
+---
+- name: Add ondrej PPA
+  apt_repository:
+    repo: "ppa:ondrej/php"
+
+- name: Install PHP packages
+  apt:
+    name: "{{deskpro_php_default_packages | union(deskpro_php_packages)}}"
+    update_cache: yes

@@ -1,0 +1,9 @@
+# Any extra packages that you wish to install
+deskpro_php_packages: []
+
+# Customize php.ini configuration here, with different options for command line
+# and fpm
+deskpro_php_ini:
+  cli: {}
+  fpm: {}
+  

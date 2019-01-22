@@ -1,0 +1,14 @@
+{% for section, items in php_config.items() %}
+[{{section}}]
+{% for key, value in items.items() %}
+{% if value is iterable and value is not string %}
+{% for listvalue in value %}
+{{key}} = {{listvalue}}
+{% endfor %}
+{% else %}
+{{key}} = {{value}}
+{% endif %}
+{% endfor %}
+
+{% endfor %}
+

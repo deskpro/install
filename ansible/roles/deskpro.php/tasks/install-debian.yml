@@ -1,0 +1,22 @@
+---
+- name: Install python-httplib2 from stretch
+  apt:
+    deb: https://packages.sury.org/php/pool/main/p/python-httplib2/python-httplib2_0.11.3-1%2B0~20181104091007.2%2Bstretch~1.gbp2efb8a_all.deb
+  when: ansible_distribution_release == "jessie"
+
+- name: Install HTTPS apt transport
+  apt:
+    name: apt-transport-https
+
+- name: Add packages.sury.org GPG key
+  apt_key:
+    url: "https://packages.sury.org/php/apt.gpg"
+
+- name: Install packages.sury.org DPA
+  apt_repository:
+    repo: "deb https://packages.sury.org/php/ {{ansible_distribution_release}} main"
+
+- name: Install PHP packages
+  apt:
+    name: "{{deskpro_php_default_packages | union(deskpro_php_packages)}}"
+    update_cache: yes

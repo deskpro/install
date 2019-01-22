@@ -1,0 +1,37 @@
+---
+deskpro_php_ini_path:
+  cli: /etc/php.ini
+  fpm: /etc/php-fpm.ini
+deskpro_php_ini_search_dir: 
+  cli: /etc/php.d
+  fpm: /etc/php.d
+
+deskpro_php_fpm_config_path: /etc/php-fpm.conf
+deskpro_php_fpm_pool_dir: /etc/php-fpm.d
+deskpro_php_fpm_pid_file: /run/php-fpm/php-fpm.pid
+deskpro_php_fpm_error_log: /var/log/php-fpm/error.log
+deskpro_php_fpm_user: php-fpm
+deskpro_php_fpm_group: php-fpm
+deskpro_php_fpm_service_name: php-fpm
+
+deskpro_php_default_packages:
+  - php71u-bcmath
+  - php71u-cli
+  - php71u-common
+  - php71u-devel
+  - php71u-fpm
+  - php71u-gd
+  - php71u-imap
+  - php71u-intl
+  - php71u-json
+  - php71u-ldap
+  - php71u-mbstring
+  - php71u-mcrypt
+  - php71u-mysqlnd
+  - php71u-odbc
+  - php71u-opcache
+  - php71u-pdo
+  - php71u-pecl-apcu
+  - php71u-process
+  - php71u-soap
+  - php71u-xml
