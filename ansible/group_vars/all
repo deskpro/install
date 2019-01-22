@@ -3,8 +3,6 @@ deskpro_site_root: "/usr/share/nginx/html/deskpro"
 deskpro_data_root: "/usr/share/nginx/deskprodata"
 deskpro_share_root: "/usr/share/deskpro"
 
-deskpro_php_fpm_socket: "/var/run/deskpro-php-fpm.sock"
-
 deskpro_database_user_password: mysqlpasswordchangeme
 
 deskpro_run_once_cron_name: "deskpro-run-once"

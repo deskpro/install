@@ -8,8 +8,9 @@
   roles:
     - base
     - nginx
+    - role: deskpro.php
+      deskpro_php_fpm_group: "{{nginx_user}}"
     - deskpro.certbot
-    - php
     - deskpro.java
     - elasticsearch
     - deskpro
