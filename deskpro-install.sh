@@ -319,6 +319,14 @@ run_ansible() {
 	$SUDO ansible-playbook -i 127.0.0.1, "$playbook" 2>&1 | $UNBUFFER tee --append "$FULL_LOG_FILE"
 }
 
+function fix_sni() {
+	cd "$ANSIBLE_DIR"
+
+	log_step "fix_sni"
+
+	run_ansible fix-sni-ubuntu-14-04.yml
+}
+
 install_deskpro() {
 	log_step "install_deskpro"
 
@@ -396,6 +404,7 @@ main() {
 	detect_distro
 	detect_repository
 	change_mysql_password
+	fix_sni
 	install_deskpro
 
 	check_memory
