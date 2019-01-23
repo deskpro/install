@@ -328,12 +328,24 @@ run_ansible() {
 	$SUDO ansible-playbook -i 127.0.0.1, "$playbook" 2>&1 | $UNBUFFER tee --append "$FULL_LOG_FILE"
 }
 
+function ansible_galaxy_roles_manual_install() {
+	local -r role=$1
+	local -r url=$2
+
+	if [ "$(python --version 2>&1)" = "Python 2.7.6" ]; then
+		mkdir "roles/$role"
+		curl -sL "$url" | tar xz --strip-components=1 -C "roles/$role"
+	fi
+}
+
 install_deskpro() {
 	log_step "install_deskpro"
 
 	cd "$ANSIBLE_DIR"
 
 	info_message -n 'Installing role dependencies... '
+	ansible_galaxy_roles_manual_install jdauphant.nginx https://github.com/jnv/ansible-role-unattended-upgrades/archive/v1.2.0.tar.gz
+	ansible_galaxy_roles_manual_install jnv.unattended-upgrades https://github.com/jnv/ansible-role-unattended-upgrades/archive/v1.2.0.tar.gz
 	ansible-galaxy install -r requirements.yml -i -p roles >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
 
