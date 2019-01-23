@@ -6,6 +6,7 @@
 
 - name: Enable firewall
   ufw: state=enabled policy=allow
+  ignore_errors: yes
 
 - name: Add allow firewall rules
   ufw: rule=allow proto=tcp port={{item}}
@@ -13,7 +14,8 @@
     - 22
     - 80
     - 443
+  ignore_errors: yes
 
 - name: Block all other traffic
   ufw: state=enabled policy=deny
-
+  ignore_errors: yes
