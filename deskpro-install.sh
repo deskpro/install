@@ -126,12 +126,6 @@ install_dependencies_rhel() {
 	exit 1
 }
 
-function upgrade_python_ubuntu_trusty() {
-	"$SUDO" add-apt-repository ppa:jonathonf/python-2.7
-	"$SUDO" apt-get update
-	"$SUDO" apt-get install -y --no-install-recommends python2.7
-}
-
 detect_repository() {
 	log_step "detect_repository"
 
@@ -182,9 +176,6 @@ detect_distro() {
 				install_dependencies_rhel
 				;;
 			ubuntu)
-				if [ "$VERSION_ID" = "14.04" ]; then
-					upgrade_python_ubuntu_trusty
-				fi
 				install_dependencies_ubuntu
 				;;
 			debian)
@@ -344,7 +335,7 @@ install_deskpro() {
 	cd "$ANSIBLE_DIR"
 
 	info_message -n 'Installing role dependencies... '
-	ansible_galaxy_roles_manual_install jdauphant.nginx https://github.com/jnv/ansible-role-unattended-upgrades/archive/v1.2.0.tar.gz
+	ansible_galaxy_roles_manual_install jdauphant.nginx https://github.com/jdauphant/ansible-role-nginx/archive/v2.15.1.tar.gz
 	ansible_galaxy_roles_manual_install jnv.unattended-upgrades https://github.com/jnv/ansible-role-unattended-upgrades/archive/v1.2.0.tar.gz
 	ansible-galaxy install -r requirements.yml -i -p roles >>"${FULL_LOG_FILE}" 2>&1
 	info_message 'Done'
