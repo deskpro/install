@@ -126,6 +126,12 @@ install_dependencies_rhel() {
 	exit 1
 }
 
+function upgrade_python_ubuntu_trusty() {
+	"$SUDO" add-apt-repository ppa:jonathonf/python-2.7
+	"$SUDO" apt-get update
+	"$SUDO" apt-get install -y --no-install-recommends python2.7
+}
+
 detect_repository() {
 	log_step "detect_repository"
 
@@ -176,6 +182,9 @@ detect_distro() {
 				install_dependencies_rhel
 				;;
 			ubuntu)
+				if [ "$VERSION_ID" = "14.04" ]; then
+					upgrade_python_ubuntu_trusty
+				fi
 				install_dependencies_ubuntu
 				;;
 			debian)
@@ -319,14 +328,6 @@ run_ansible() {
 	$SUDO ansible-playbook -i 127.0.0.1, "$playbook" 2>&1 | $UNBUFFER tee --append "$FULL_LOG_FILE"
 }
 
-function fix_sni() {
-	cd "$ANSIBLE_DIR"
-
-	log_step "fix_sni"
-
-	run_ansible fix-sni-ubuntu-14-04.yml
-}
-
 install_deskpro() {
 	log_step "install_deskpro"
 
@@ -404,7 +405,6 @@ main() {
 	detect_distro
 	detect_repository
 	change_mysql_password
-	fix_sni
 	install_deskpro
 
 	check_memory
