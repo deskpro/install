@@ -14,7 +14,7 @@
 
 - name: Install packages.sury.org DPA
   apt_repository:
-    repo: "deb https://packages.sury.org/php/ {{ansible_lsb.codename}} main"
+    repo: "deb https://packages.sury.org/php/ {{'jessie' if ansible_distribution_release == 'jessie' else 'stretch'}} main"
 
 - name: Install PHP packages
   apt:
