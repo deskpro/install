@@ -30,20 +30,3 @@
     cron_file="deskpro-tech-email"
     user=root
     state=present
-
-- name: Install URL reset script
-  template:
-    src=deskpro-url-reset
-    dest=/usr/local/bin/deskpro-url-reset
-    mode=0755
-    owner=root
-    group=root
-
-- name: Install URL reset cron job
-  cron:
-    name="URL Reset"
-    job="/usr/local/bin/deskpro-url-reset"
-    cron_file="deskpro-url-reset"
-    user=deskpro
-    state=present
-    special_time=reboot
