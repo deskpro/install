@@ -20,29 +20,21 @@ deskpro_php_default_ini_common:
       - ldap.so
       - mbstring.so
       - mcrypt.so
-      - mysqlnd.so
-      - mysqli.so
-      - odbc.so
       - pdo.so
       - pdo_mysql.so
       - pdo_odbc.so
       - pdo_sqlite.so
       - phar.so
       - posix.so
-      - shmop.so
       - simplexml.so
       - soap.so
       - sockets.so
       - sqlite3.so
-      - sysvmsg.so
-      - sysvsem.so
-      - sysvshm.so
       - tokenizer.so
       - xmlreader.so
       - xml.so
       - xmlwriter.so
       - xsl.so
-      - wddx.so
       - zip.so
     memory_limit: 1024M
     short_open_tag: 'off'
