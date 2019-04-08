@@ -1,0 +1,16 @@
+# {{ansible_managed}}
+
+{% for section_name, data in (deskpro_unit_default | combine(item.data, recursive=True)).items() %}
+[{{section_name}}]
+{% for key, value in data.items() %}
+{% if value is iterable and value is not string %}
+{% for listvalue in value %}
+{{key}}={{listvalue}}
+{% endfor %}
+{% else %}
+{{key}}={{value}}
+{% endif %}
+{% endfor %}
+
+{% endfor %}
+

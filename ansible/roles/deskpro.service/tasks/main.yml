@@ -1,0 +1,51 @@
+---
+- name: Ensure we're on systemd
+  assert:
+    that: "ansible_service_mgr == 'systemd'"
+    msg: This role is only valid on systemd-managed hosts
+
+- name: Ensure unit files are present
+  template:
+    src: unit.j2
+    dest: "/etc/systemd/system/{{item.name}}"
+  register: unit_files
+  loop_control:
+    label: "/etc/systemd/system/{{item.name}}"
+  when: not (item.remove | default(false))
+  with_items: "{{deskpro_units}}"
+
+- name: Reload units
+  systemd:
+    name: "{{item.item.name}}"
+    daemon_reload: yes
+  loop_control:
+    label: "{{item.item.name}}"
+  when: item.changed
+  with_items: "{{unit_files.results}}"
+
+- name: Remove unecessary units
+  file:
+    path: "/etc/systemd/system/{{item.name}}"
+    state: absent
+  loop_control:
+    label: "{{item.name}}"
+  when: item.remove | default(false)
+  with_items: "{{deskpro_units}}"
+
+- name: Start units
+  service:
+    name: "{{item.name}}"
+    state: "{{item.state}}"
+  loop_control:
+    label: "{{item.name}}"
+  when: (item.state | default(false)) and not (item.remove | default(false))
+  with_items: "{{deskpro_units}}"
+
+- name: Enable units
+  service:
+    name: "{{item.name}}"
+    enabled: "{{item.enabled | default(false)}}"
+  loop_control:
+    label: "{{item.name}}"
+  when: not (item.remove | default(false))
+  with_items: "{{deskpro_units}}"

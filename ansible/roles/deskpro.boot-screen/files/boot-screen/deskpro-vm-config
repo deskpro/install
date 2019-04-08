@@ -1,0 +1,916 @@
+#!/usr/bin/env python3
+# coding: utf-8
+
+from ipaddress import ip_network
+import os
+import re
+import socket
+import subprocess
+import sys
+import time
+
+import dbus
+import netifaces
+import systemd.daemon
+import urwid
+import yaml
+
+
+FIRST_RUN_FILENAME = '/var/lib/deskpro/first-run'
+INSTALL_IN_PROGRESS_FILENAME = '/var/lib/deskpro/install-in-progress'
+INSTALL_FAILED_FILENAME = '/var/lib/deskpro/install-failed'
+
+
+def get_interface_name():
+    # simple case: just the loopback and our main eth
+    ifaces = [name for name in netifaces.interfaces() if name != 'lo']
+    if len(ifaces) == 1:
+        return ifaces[0]
+
+    # if we have more interfaces, the machine has been "tampered" with but we
+    # might still get a decent result out of it
+    return netifaces.gateways()['default'][netifaces.AF_INET][1]
+
+
+def is_network_active():
+    system_bus = dbus.SystemBus()
+    systemd = system_bus.get_object(
+        'org.freedesktop.systemd1', '/org/freedesktop/systemd1',
+    )
+    manager = dbus.Interface(systemd, 'org.freedesktop.systemd1.Manager')
+
+    unit_path = manager.GetUnit('network.target')
+    unit_proxy = system_bus.get_object('org.freedesktop.systemd1', unit_path)
+
+    unit_properties = dbus.Interface(
+        unit_proxy, 'org.freedesktop.DBus.Properties',
+    )
+    state = unit_properties.Get('org.freedesktop.systemd1.Unit', 'ActiveState')
+
+    return state == 'active'
+
+
+class NetworkError(RuntimeError):
+    pass
+
+
+class NoLinkError(NetworkError):
+    pass
+
+
+class NoRouteError(NetworkError):
+    pass
+
+
+class TabPile(urwid.Pile):
+    # this is a copy of the original keypress function. The only change is that
+    # this now checks for tabs also
+    def keypress(self, size, key):
+        """Pass the keypress to the widget in focus.
+        Unhandled 'up' and 'down' keys may cause a focus change."""
+        if not self.contents:
+            return key
+
+        item_rows = None
+        if len(size) == 2:
+            item_rows = self.get_item_rows(size, focus=True)
+
+        i = self.focus_position
+        if self.selectable():
+            tsize = self.get_item_size(size, i, True, item_rows)
+            key = self.focus.keypress(tsize, key)
+            handled_commands = (
+                'cursor up', 'cursor down',
+                'next selectable', 'prev selectable'
+            )
+            if self._command_map[key] not in handled_commands:
+                return key
+
+        if self._command_map[key] in ('cursor up', 'prev selectable'):
+            candidates = range(i - 1, -1, -1)  # count backwards to 0
+        else:
+            candidates = range(i + 1, len(self.contents))
+
+        if not item_rows:
+            item_rows = self.get_item_rows(size, focus=True)
+
+        for j in candidates:
+            if not self.contents[j][0].selectable():
+                continue
+
+            self._update_pref_col_from_focus(size)
+            self.focus_position = j
+            if not hasattr(self.focus, 'move_cursor_to_coords'):
+                return
+
+            rows = item_rows[j]
+            if self._command_map[key] in ('cursor up', 'prev selectable'):
+                rowlist = range(rows-1, -1, -1)
+            else:
+                rowlist = range(rows)
+            for row in rowlist:
+                tsize = self.get_item_size(size, j, True, item_rows)
+                if self.focus_item.move_cursor_to_coords(
+                        tsize, self.pref_col, row):
+                    break
+            return
+
+        # nothing to select
+        return key
+
+
+class TabColumns(urwid.Columns):
+    # like TabPile, this replaces the keypress method to handle tabs
+    def keypress(self, size, key):
+        """
+        Pass keypress to the focus column.
+
+        :param size: `(maxcol,)` if :attr:`widget_list` contains flow widgets
+            or `(maxcol, maxrow)` if it contains box widgets.
+        :type size: int, int
+        """
+        if self.focus_position is None:
+            return key
+
+        widths = self.column_widths(size)
+        if self.focus_position >= len(widths):
+            return key
+
+        i = self.focus_position
+        mc = widths[i]
+        w, (t, n, b) = self.contents[i]
+        if self._command_map[key] not in (
+            'cursor up', 'cursor down', 'cursor page up', 'cursor page down'
+        ):
+            self.pref_col = None
+        if len(size) == 1 and b:
+            key = w.keypress((mc, self.rows(size, True)), key)
+        else:
+            key = w.keypress((mc,) + size[1:], key)
+
+        handled_commands = (
+            'cursor left', 'cursor right',
+            'next selectable', 'prev selectable'
+        )
+        if self._command_map[key] not in handled_commands:
+            return key
+
+        if self._command_map[key] in ('cursor left', 'prev selectable'):
+            candidates = range(i - 1, -1, -1)  # count backwards to 0
+        else:
+            candidates = range(i + 1, len(self.contents))
+
+        for j in candidates:
+            if not self.contents[j][0].selectable():
+                continue
+
+            self.focus_position = j
+            return
+        return key
+
+
+class BaseDialog(urwid.Overlay):
+    def __init__(self, widget, loop, title=''):
+        fill = urwid.AttrMap(urwid.SolidFill(), 'bg')
+
+        padded_sides = urwid.Padding(widget, 'center', ('relative', 90))
+        padded_all = urwid.Filler(padded_sides, top=2, bottom=2)
+        top_widget = urwid.AttrMap(urwid.LineBox(padded_all, title), 'dialog')
+
+        self.loop = loop
+
+        super(BaseDialog, self).__init__(
+            top_widget, fill,
+            align='center', width=('relative', 70),
+            valign='middle', height=('relative', 80),
+            min_width=20, min_height=10
+        )
+
+    def button(self, text, callback=None, align='center', width=None):
+        widget = urwid.Button(text, callback)
+        if width is None:
+            width = len(text) + len('<  >')
+
+        widget = urwid.AttrMap(widget, None, focus_map='button-focus')
+
+        return urwid.Padding(widget, align, width)
+
+    def button_row(self, button_text, callback, description, weight=2):
+        button = self.button(button_text, callback, width=('relative', 100))
+        text = urwid.Text(description)
+        columns = [button, ('weight', weight, text)]
+
+        return TabColumns(columns, 2)
+
+
+class BootDialog(BaseDialog):
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(BootDialog, self).__init__(widget, loop)
+
+        self.loop.set_alarm_in(1, self.boot_finished)
+
+    def get_widget(self):
+        text = urwid.Text('Booting...', 'center')
+        return urwid.Filler(text)
+
+    def boot_finished(self, loop, user_data=None):
+        systemd.daemon.notify('READY=1')
+
+        for _ in range(5):
+            if is_network_active():
+                break
+            else:
+                time.sleep(5)
+
+        self.next_window()
+
+    def next_window(self):
+        if not os.path.exists(FIRST_RUN_FILENAME):
+            if not os.path.isfile(INSTALL_IN_PROGRESS_FILENAME):
+                self.loop.widget = InfoDialog(self.loop)
+            else:
+                self.loop.widget = WaitInstallDialog(self.loop)
+        else:
+            if os.path.isfile(INSTALL_FAILED_FILENAME):
+                self.loop.widget = InstallFailedDialog(self.loop)
+            else:
+                self.loop.widget = RootPasswordDialog(self.loop)
+
+
+class RootPasswordDialog(BaseDialog):
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(RootPasswordDialog, self).__init__(widget, loop)
+
+    def get_widget(self):
+        msg = urwid.Text('Please enter the new password for the root account')
+        repeat_msg = urwid.Text('Enter the password again to confirm')
+
+        # keep these as part of the instance because they're going to be
+        # accessed later on the callbacks
+        self.password_input = urwid.Edit(mask='*')
+        self.password_repeat_input = urwid.Edit(mask='*')
+        self.error_message_text = urwid.Text('')
+
+        button = self.button('Set password', self.on_set_password)
+
+        for edit in [self.password_input, self.password_repeat_input]:
+            urwid.connect_signal(edit, 'change', self.on_password_change)
+
+        divider = urwid.Divider()
+
+        pile = TabPile([
+            msg,
+            divider,
+            urwid.LineBox(self.password_input),
+            divider,
+            repeat_msg,
+            divider,
+            urwid.LineBox(self.password_repeat_input),
+            divider,
+            urwid.AttrMap(self.error_message_text, 'errormsg'),
+            divider,
+            button,
+        ])
+
+        return pile
+
+    def on_set_password(self, button):
+        password1 = self.password_input.edit_text
+        password2 = self.password_repeat_input.edit_text
+
+        if password1 != password2:
+            self.error_message_text.set_text("Passwords don't match")
+            return
+
+        if password1 == '' or password2 == '':
+            self.error_message_text.set_text('Password is empty')
+            return
+
+        # change the password
+        proc = subprocess.Popen(
+            ['/usr/sbin/chpasswd'],
+            stdin=subprocess.PIPE,
+        )
+        proc.communicate(input=b':'.join([b'root', password1.encode()]))
+
+        # remove first run file - we're not coming back here if this file does
+        # not exist
+        os.remove(FIRST_RUN_FILENAME)
+
+        self.next_window()
+
+    def on_password_change(self, edit, new_text):
+        inputs = [self.password_input, self.password_repeat_input]
+        other = next(obj for obj in inputs if obj is not edit)
+
+        if new_text != other.edit_text:
+            self.error_message_text.set_text("Passwords don't match")
+        else:
+            self.error_message_text.set_text('')
+
+    def next_window(self):
+        self.loop.widget = WaitInstallDialog(self.loop)
+
+
+class WaitInstallDialog(BaseDialog):
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(WaitInstallDialog, self).__init__(widget, loop)
+
+        self.loop.set_alarm_in(2, self.install_finished)
+
+    def get_widget(self):
+        def text(msg):
+            return urwid.AttrMap(urwid.Text(msg, 'center'), 'text')
+
+        lines = [
+            text('Please wait while DeskPRO is being set up...'),
+            urwid.Divider(),
+            text('(Typically takes 30 seconds)'),
+        ]
+
+        return TabPile(lines)
+
+    def install_finished(self, loop, user_data=None):
+        if os.path.isfile(INSTALL_IN_PROGRESS_FILENAME):
+            self.loop.set_alarm_in(2, self.install_finished)
+        else:
+            self.next_window()
+
+    def next_window(self):
+        if os.path.isfile(INSTALL_FAILED_FILENAME):
+            self.loop.widget = InstallFailedDialog(self.loop)
+        else:
+            self.loop.widget = InfoDialog(self.loop)
+
+
+class InstallFailedDialog(BaseDialog):
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(InstallFailedDialog, self).__init__(widget, loop)
+
+        self.loop._unhandled_input = self.unhandled_input
+
+    def get_widget(self):
+        def text(string, map_name):
+            return urwid.AttrMap(urwid.Text(string, 'center'), map_name)
+
+        divider = urwid.Divider()
+
+        # Main "We failed" message
+        messages = [
+            text('The installation has failed!', 'heading'),
+            divider, divider,
+        ]
+
+        # Where are the logs
+        messages.extend([
+            text(
+                'The installation log has been written to:',
+                'text'
+            ),
+            divider,
+            text('/root/first-run.log', 'text'),
+            divider, divider,
+        ])
+
+        # Contact support
+        messages.extend([
+            text(
+                'We\'d like to get you up and running as quickly as '
+                'possible. Please contact support@deskpro.com for '
+                'assistance. Quote your reference number:',
+                'text'
+            ),
+            divider,
+            text(self.get_log_uuid(), 'text'),
+            divider, divider,
+
+        ])
+
+        # Utility buttons
+        messages.append(TabColumns(
+            [
+                self.button('Advanced menu', self.on_advanced_menu),
+                self.button('Login to server', self.on_login_to_server),
+            ],
+            2
+        ))
+
+        return TabPile(messages)
+
+    def get_log_uuid(self):
+        with open('/etc/deskpro/install-uuid') as uuidfile:
+            return uuidfile.read().strip()
+
+    def on_login_to_server(self, button, user_data=None):
+        raise urwid.ExitMainLoop()
+
+    def on_advanced_menu(self, button, user_data=None):
+        self.loop.widget = AdvancedMenuDialog(self.loop)
+
+    def unhandled_input(self, key):
+        if key in ['q', 'Q']:
+            raise urwid.ExitMainLoop()
+
+
+class InfoDialog(BaseDialog):
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(InfoDialog, self).__init__(widget, loop)
+
+        self.loop._unhandled_input = self.unhandled_input
+
+    def get_widget(self):
+        def text(string, map_name):
+            return urwid.AttrMap(urwid.Text(string, 'center'), map_name)
+
+        divider = urwid.Divider()
+
+        # Welcome message
+        messages = [
+            text('Welcome to the DeskPRO Helpdesk VM!', 'heading'),
+            divider, divider,
+        ]
+
+        # Connect to this address messages
+        ip_address = self.get_ip_address()
+
+        if ip_address:
+            messages.extend([
+                text(
+                    'To access the helpdesk, go to the following address in '
+                    'your browser:',
+                    'text'
+                ),
+                divider,
+                text('http://{}/'.format(self.get_ip_address()), 'text'),
+                divider, divider,
+            ])
+        else:
+            messages.extend([
+                text(
+                    "I couldn't find a valid address for this machine. This "
+                    "may mean your network interfaces are down. Please read "
+                    "the next section on how to get help.",
+                    'text'
+                ),
+                divider,
+            ])
+
+        # Help messages
+        messages.extend([
+            text('Need help?', 'heading'),
+            divider,
+            text(
+                'If you can\'t access the helpdesk from your host machine, '
+                ' the following article will help:',
+                'text'
+            ),
+            divider,
+            text(
+                'https://www.deskpro.com/go/deskpro-vms',
+                'text'
+            ),
+            divider,
+            text(
+                'For any other questions, our customer care team is here to '
+                'help. Contact them on support@deskpro.com',
+                'text'
+            ),
+            divider, divider,
+        ])
+
+        messages.append(TabColumns(
+            [
+                self.button('Advanced menu', self.on_advanced_menu),
+                self.button('Login to server', self.on_login_to_server),
+            ],
+            2
+        ))
+
+        return TabPile(messages)
+
+    def get_ip_address(self):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            return s.getsockname()[0]
+        except socket.error:
+            return None
+
+    def on_login_to_server(self, button, user_data=None):
+        raise urwid.ExitMainLoop()
+
+    def on_advanced_menu(self, button, user_data=None):
+        self.loop.widget = AdvancedMenuDialog(self.loop)
+
+    def unhandled_input(self, key):
+        if key in ['q', 'Q']:
+            raise urwid.ExitMainLoop()
+
+
+class AdvancedMenuDialog(BaseDialog):
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(AdvancedMenuDialog, self).__init__(widget, loop, 'Advanced menu')
+
+    def get_widget(self):
+        items = []
+
+        # menu itself
+        menu_buttons = [
+            self.button_row('Networking', self.on_network, 'Configure networking'),
+            self.button_row('Reboot', self.on_reboot, 'Reboot the VM'),
+            self.button_row('Shutdown', self.on_shutdown, 'Turn off the VM'),
+        ]
+        items.append(urwid.LineBox(TabPile(menu_buttons)))
+
+        items.append(urwid.Divider())
+
+        items.append(self.button('Back', self.on_back))
+        return TabPile(items)
+
+    def on_back(self, button, user_data=None):
+        self.loop.widget = InfoDialog(self.loop)
+
+    def on_network(self, button, user_data=None):
+        self.loop.widget = NetworkDialog(self.loop)
+
+    def on_reboot(self, button, user_data=None):
+        self.loop.widget = RebootDialog(self.loop)
+
+    def on_shutdown(self, button, user_data=None):
+        self.loop.widget = ShutdownDialog(self.loop)
+
+
+class NetworkMixin(object):
+    def get_net_data(self):
+        for interface in netifaces.interfaces():
+            if interface == 'lo':
+                continue
+            ifdata = netifaces.ifaddresses(interface)
+
+            for address in ifdata.get(netifaces.AF_INET, []):
+                try:
+                    ip = address['addr']
+                    netmask = address['netmask']
+                    gateway = self.get_gateway()
+                    name_servers = self.get_name_servers()
+                    mode = self.get_interface_mode()
+
+                    return (ip, netmask, gateway, name_servers, mode)
+                except KeyError:
+                    continue
+
+        raise NoLinkError()
+
+    def get_gateway(self):
+        try:
+            return netifaces.gateways()['default'][netifaces.AF_INET][0]
+        except KeyError:
+            raise NoRouteError()
+
+    def get_name_servers(self):
+        nameserver_re = re.compile(r'^nameserver\s+(.*)$')
+
+        servers = []
+        with open('/etc/resolv.conf') as resolv_conf:
+            for line in resolv_conf:
+                match = nameserver_re.match(line.strip())
+                if match:
+                    servers.append(match.group(1))
+
+        return servers
+
+    def get_interface_mode(self):
+        with open('/etc/netplan/01-netcfg.yaml') as fh:
+            config = yaml.load(fh)
+
+        iface = get_interface_name()
+
+        data = config['network']['ethernets'][iface]
+        if data.get('dhcp4'):
+            return 'DHCP'
+        elif data.get('addresses'):
+            return 'Static IP'
+
+        return 'Unknown'
+
+    def get_netplan_config(self, dhcp=False, net_data=None):
+        iface = get_interface_name()
+        config = {
+            'network': {
+                'version': 2,
+                'ethernets': {
+                    iface: {
+                    }
+                }
+            }
+        }
+        data = config['network']['ethernets'][iface]
+
+        if dhcp:
+            data['dhcp4'] = True
+
+        if net_data is not None:
+            prefixlen = ip_network(
+                '0.0.0.0/{}'.format(net_data['netmask'])
+            ).prefixlen
+
+            data['addresses'] = [
+                '{}/{}'.format(net_data['ip'], prefixlen),
+            ]
+            data['gateway4'] = net_data['gateway']
+            data['nameservers'] = {
+                'addresses': net_data['dns'].split(),
+            }
+
+        return config
+
+    def apply_network_config(self, config):
+        with open('/etc/netplan/01-netcfg.yaml', 'w') as fh:
+            yaml.dump(config, fh)
+        os.chmod('/etc/netplan/01-netcfg.yaml', 0o644)
+
+        subprocess.call(['netplan', 'apply'])
+
+
+class NetworkDialog(BaseDialog, NetworkMixin):
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(NetworkDialog, self).__init__(widget, loop, 'Networking')
+
+    def get_widget(self):
+        lines = []
+
+        try:
+            ip, netmask, gateway, name_servers, mode = self.get_net_data()
+
+            # network information
+            net_info = TabPile([
+                self.info_row('IP address:', ip),
+                self.info_row('Netmask:', netmask),
+                self.info_row('Default gateway:', gateway),
+                self.info_row('DNS Server(s):', ' '.join(name_servers)),
+            ])
+
+            lines.append(urwid.LineBox(
+                net_info, 'Current network information'
+            ))
+
+            lines.append(urwid.Divider())
+
+            lines.append(urwid.Text('Current mode: ' + mode))
+        except NoLinkError:
+            error_message = urwid.Text(
+                "There are no configured network interfaces. If you don't "
+                "have a DHCP server on the machine's network, use the Static "
+                "IP configuration menu."
+            )
+            lines.append(urwid.AttrMap(error_message, 'errormsg'))
+        except NoRouteError:
+            error_message = urwid.Text(
+                "There's no default gateway configured. Please check your "
+                "DHCP server's settings or use the Static IP configuration "
+                "menu."
+            )
+            lines.append(urwid.AttrMap(error_message, 'errormsg'))
+
+        lines.append(urwid.Divider())
+
+        # network config
+        net_actions = TabPile([
+            self.button_row(
+                'DHCP',
+                self.on_dhcp,
+                'Configure networking automatically',
+            ),
+            self.button_row(
+                'Static IP',
+                self.on_static_ip,
+                'Configure networking manually',
+            ),
+        ])
+        net_actions = urwid.Padding(net_actions, 'center')
+        lines.append(urwid.LineBox(net_actions, 'Change network config'))
+
+        lines.append(urwid.Divider())
+
+        lines.append(self.button('Back', self.on_back))
+
+        return TabPile(lines)
+
+    def info_row(self, left, right):
+        return TabColumns([urwid.Text(left), urwid.Text(right)], 2)
+
+    def on_dhcp(self, button, user_data=None):
+        config = self.get_netplan_config(dhcp=True)
+        self.apply_network_config(config)
+
+        self.loop.widget = NetworkDialog(self.loop)
+
+    def on_static_ip(self, button, user_data=None):
+        self.loop.widget = StaticIPDialog(self.loop)
+
+    def on_back(self, button, user_data=None):
+        self.loop.widget = AdvancedMenuDialog(self.loop)
+
+
+class StaticIPDialog(BaseDialog, NetworkMixin):
+    def __init__(self, loop):
+        try:
+            ip, netmask, gateway, name_servers, _ = self.get_net_data()
+        except NetworkError:
+            ip, netmask, gateway, name_servers = '', '', '', ''
+
+        self.net_data = {
+            'ip': ip,
+            'netmask': netmask,
+            'gateway': gateway,
+            'dns': ' '.join(name_servers),
+        }
+
+        widget = self.get_widget()
+
+        super(StaticIPDialog, self).__init__(widget, loop, 'Static IP config')
+
+    def get_widget(self):
+        network_edits = [
+            self.edit_row('IP address', 'ip', self.on_ip_address_change),
+            self.edit_row('Netmask', 'netmask', self.on_netmask_change),
+            self.edit_row('Gateway', 'gateway', self.on_gateway_change),
+            self.edit_row('DNS server(s)', 'dns', self.on_dns_servers_change),
+        ]
+
+        self.error_message = urwid.Text('')
+
+        div = urwid.Divider()
+
+        lines = [
+            urwid.Text('Please enter the new network configuration'),
+            div,
+            urwid.LineBox(TabPile(network_edits)),
+            div,
+            urwid.AttrMap(self.error_message, 'errormsg'),
+            div,
+            TabColumns(
+                [
+                    self.button('Back', self.on_back),
+                    self.button('Set static IP', self.on_set_static_ip),
+                ],
+                2
+            ),
+        ]
+
+        return TabPile(lines)
+
+    def edit_row(self, text, key, callback=None):
+        text = urwid.BoxAdapter(urwid.Filler(urwid.Text(text)), 3)
+        edit = urwid.Edit(edit_text=self.net_data[key])
+        columns = [text, ('weight', 3, urwid.LineBox(edit))]
+
+        if callable(callback):
+            urwid.connect_signal(edit, 'change', callback)
+
+        return TabColumns(columns, 2)
+
+    def valid_ip(self, ip):
+        try:
+            socket.inet_pton(socket.AF_INET, ip)
+            return True
+        except socket.error:
+            try:
+                socket.inet_pton(socket.AF_INET6, ip)
+                return True
+            except socket.error:
+                return False
+
+    def ip_field_change(self, string, field, message):
+        for ip in string.split():
+            if not self.valid_ip(ip):
+                self.error_message.set_text(message)
+                self.net_data[field] = ''
+                return
+
+        self.error_message.set_text('')
+        self.net_data[field] = string
+
+    def on_ip_address_change(self, edit, new_text):
+        self.ip_field_change(new_text, 'ip', 'Invalid IP address')
+
+    def on_netmask_change(self, edit, new_text):
+        self.ip_field_change(new_text, 'netmask', 'Invalid netmask')
+
+    def on_gateway_change(self, edit, new_text):
+        self.ip_field_change(new_text, 'gateway', 'Invalid gateway')
+
+    def on_dns_servers_change(self, edit, new_text):
+        self.ip_field_change(new_text, 'dns', 'Invalid DNS server(s)')
+
+    def on_set_static_ip(self, button, user_data=None):
+        for key, value in self.net_data.items():
+            if value == '':
+                self.error_message.set_text(
+                    'You need to fix the {} setting first'.format(key)
+                )
+                return
+
+        config = self.get_netplan_config(net_data=self.net_data)
+        self.apply_network_config(config)
+
+        # all set, time to go back to the network screen
+        self.loop.widget = NetworkDialog(self.loop)
+
+    def on_back(self, button, user_data=None):
+        self.loop.widget = NetworkDialog(self.loop)
+
+
+class YesNoDialog(BaseDialog):
+    QUESTION_TEXT = 'Are you sure?'
+    YES_TEXT = 'Yes'
+    NO_TEXT = 'No'
+
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(YesNoDialog, self).__init__(widget, loop)
+
+    def get_widget(self):
+        items = [
+            urwid.Text(self.QUESTION_TEXT, 'center'),
+            urwid.Divider(),
+            TabColumns(
+                [
+                    self.button(self.NO_TEXT, self.on_no),
+                    self.button(self.YES_TEXT, self.on_yes)
+                ],
+                2
+            ),
+        ]
+
+        return TabPile(items)
+
+    def on_no(self, button, user_data=None):
+        raise NotImplementedError
+
+    def on_yes(self, button, user_data=None):
+        raise NotImplementedError
+
+
+class RebootDialog(YesNoDialog):
+    QUESTION_TEXT = 'Do you want to reboot the virtual machine?'
+    YES_TEXT = 'Yes, reboot it'
+    NO_TEXT = 'No, go back'
+
+    def on_no(self, button, user_data=None):
+        self.loop.widget = AdvancedMenuDialog(self.loop)
+
+    def on_yes(self, button, user_data=None):
+        subprocess.call(['shutdown', '-hr', 'now'])
+
+
+class ShutdownDialog(YesNoDialog):
+    QUESTION_TEXT = 'Do you want to turn off the virtual machine?'
+    YES_TEXT = 'Yes, turn it off'
+    NO_TEXT = 'No, go back'
+
+    def on_no(self, button, user_data=None):
+        self.loop.widget = AdvancedMenuDialog(self.loop)
+
+    def on_yes(self, button, user_data=None):
+        subprocess.call(['shutdown', '-hP', 'now'])
+
+
+def main():
+    boot_widget = urwid.Filler(urwid.Text('Booting...', 'center'))
+    palette = [
+        ('bg', '', 'dark blue'),
+        ('button-focus', 'yellow', 'dark blue'),
+        ('errormsg', 'dark red', 'light gray'),
+        ('dialog', 'black', 'light gray'),
+        ('heading', 'black,bold', 'light gray'),
+        ('text', 'black', 'light gray'),
+    ]
+    loop = urwid.MainLoop(boot_widget, palette)
+
+    boot_dialog = BootDialog(loop)
+
+    loop.run()
+
+
+if __name__ == '__main__':
+    if os.getuid() != 0:
+        print('This program should be run as root')
+        sys.exit(1)
+
+    main()

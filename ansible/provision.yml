@@ -16,7 +16,7 @@
     - role: deskpro
       deskpro_install_type: virtual-machine
     - firewall
-    - hud
+    - deskpro.boot-screen
     - grub
     - mysql
     - security

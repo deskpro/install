@@ -1,0 +1,6 @@
+---
+deskpro_boot_screen_dependencies:
+  - python-jinja2
+  - python-netifaces
+  - python-urwid
+  - systemd-python
