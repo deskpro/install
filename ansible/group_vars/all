@@ -7,12 +7,12 @@ deskpro_database_user_password: mysqlpasswordchangeme
 
 deskpro_run_once_cron_name: "deskpro-run-once"
 
-install_failed_filename: "/root/.install-failed"
-first_run_filename: "/root/.this-is-the-first-run"
+install_failed_filename: "/var/lib/deskpro/install-failed"
+first_run_filename: "/var/lib/deskpro/first-run"
 
-deskpro_install_uuid_filename: ".deskpro-install-uuid"
+deskpro_install_uuid_filename: "/etc/deskpro/install-uuid"
 
-install_in_progress_filename: "/root/.install-in-progress"
+install_in_progress_filename: "/var/lib/deskpro/install-in-progress"
 
 deskpro_zip_url: "{{lookup('env', 'DESKPRO_ZIP_URL') | default('https://www.deskpro.com/downloads/deskpro.zip', true)}}"
 

@@ -22,7 +22,7 @@ def get_random_string(length):
 
 
 def replace_mysql_password(password):
-    filename = '/root/deskpro-install/ansible/group_vars/all'
+    filename = '/usr/share/deskpro/install/ansible/group_vars/all'
 
     with open(filename) as vars_file:
         lines = vars_file.readlines()
@@ -43,7 +43,7 @@ def run_ansible():
         subprocess.check_call(
             ['ansible-playbook', '-i', '127.0.0.1,', 'first-run.yml'],
             stdout=outlog, stderr=outlog,
-            cwd='/root/deskpro-install/ansible',
+            cwd='/usr/share/deskpro/install/ansible',
         )
 
 
