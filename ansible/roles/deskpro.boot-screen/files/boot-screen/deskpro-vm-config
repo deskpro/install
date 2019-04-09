@@ -19,6 +19,7 @@ import yaml
 FIRST_RUN_FILENAME = '/var/lib/deskpro/first-run'
 INSTALL_IN_PROGRESS_FILENAME = '/var/lib/deskpro/install-in-progress'
 INSTALL_FAILED_FILENAME = '/var/lib/deskpro/install-failed'
+DESKPRO_PATH = '/usr/share/nginx/html/deskpro'
 
 
 def get_interface_name():
@@ -227,16 +228,51 @@ class BootDialog(BaseDialog):
         self.next_window()
 
     def next_window(self):
-        if not os.path.exists(FIRST_RUN_FILENAME):
-            if not os.path.isfile(INSTALL_IN_PROGRESS_FILENAME):
-                self.loop.widget = InfoDialog(self.loop)
-            else:
-                self.loop.widget = WaitInstallDialog(self.loop)
-        else:
+        if os.path.exists(FIRST_RUN_FILENAME):
             if os.path.isfile(INSTALL_FAILED_FILENAME):
                 self.loop.widget = InstallFailedDialog(self.loop)
             else:
                 self.loop.widget = RootPasswordDialog(self.loop)
+        else:
+            if os.path.isfile(INSTALL_IN_PROGRESS_FILENAME):
+                self.loop.widget = WaitInstallDialog(self.loop)
+            else:
+                self.loop.widget = InfoDialog(self.loop)
+
+
+class ChooseInstallMethodDialog(BaseDialog):
+    def __init__(self, loop):
+        widget = self.get_widget()
+
+        super(BaseDialog, self).__init__(widget, loop)
+
+    def get_widget(self):
+        menu = [
+            self.button("Install Deskpro", self.on_install),
+            self.button("Copy/Restore an existing Deskpro installation", self.on_restore),
+        ]
+
+        return TabPile(menu)
+
+    def on_install(self):
+        self.loop.widget = WaitInstallDialog(self.loop)
+
+    def on_restore(self):
+        self.loop.stop()
+
+        dputils_path = None
+        app_dir = os.path.join(DESKPRO_PATH, 'app')
+        for directory in os.listdir(app_dir):
+            if re.match(r'', directory):
+                dputils_path = os.path.join(app_dir, directory, 'bin/dputils')
+                break
+
+        subprocess.call([dputils_path, "restore", "--interactive"])
+
+        self.loop.start()
+        self.loop.screen_size = None
+        self.loop.draw_screen()
+        self.loop.widget = WaitInstallDialog(self.loop)
 
 
 class RootPasswordDialog(BaseDialog):
@@ -313,7 +349,7 @@ class RootPasswordDialog(BaseDialog):
             self.error_message_text.set_text('')
 
     def next_window(self):
-        self.loop.widget = WaitInstallDialog(self.loop)
+        self.loop.widget = ChooseInstallMethodDialog(self.loop)
 
 
 class WaitInstallDialog(BaseDialog):
@@ -323,6 +359,11 @@ class WaitInstallDialog(BaseDialog):
         super(WaitInstallDialog, self).__init__(widget, loop)
 
         self.loop.set_alarm_in(2, self.install_finished)
+        self.proc = subprocess.Popen(
+            ["/root/first-run"],
+            stdout=sys.stderr,
+            stderr=sys.stderr,
+        )
 
     def get_widget(self):
         def text(msg):
