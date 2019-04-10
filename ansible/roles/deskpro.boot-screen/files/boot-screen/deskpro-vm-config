@@ -3,8 +3,10 @@
 
 from ipaddress import ip_network
 import os
+import random
 import re
 import socket
+import string
 import subprocess
 import sys
 import time
@@ -22,6 +24,8 @@ FIRST_RUN_FILENAME = '/var/lib/deskpro/first-run'
 INSTALL_IN_PROGRESS_FILENAME = '/var/lib/deskpro/install-in-progress'
 INSTALL_FAILED_FILENAME = '/var/lib/deskpro/install-failed'
 DESKPRO_PATH = '/usr/share/nginx/html/deskpro'
+ANSIBLE_PATH = '/usr/share/deskpro/install/ansible'
+FULL_LOG_FILE = '/root/first-run.log'
 
 
 def get_interface_name():
@@ -33,6 +37,11 @@ def get_interface_name():
     # if we have more interfaces, the machine has been "tampered" with but we
     # might still get a decent result out of it
     return netifaces.gateways()['default'][netifaces.AF_INET][1]
+
+def get_random_string(length):
+    chars = string.ascii_letters + string.digits
+
+    return ''.join(random.choice(chars) for _ in range(length))
 
 
 def is_network_active():
@@ -51,6 +60,24 @@ def is_network_active():
     state = unit_properties.Get('org.freedesktop.systemd1.Unit', 'ActiveState')
 
     return state == 'active'
+
+def replace_mysql_password(password):
+    filename = os.path.join(ANSIBLE_PATH, 'group_vars/all')
+
+    with open(filename) as vars_file:
+        lines = vars_file.readlines()
+
+    with open(filename, 'w') as vars_file:
+        for line in lines:
+            vars_file.write(line.replace('mysqlpasswordchangeme', password))
+
+def run_ansible(playbook):
+    with open(FULL_LOG_FILE, 'a') as outlog:
+        subprocess.check_call(
+            ['ansible-playbook', playbook],
+            stdout=outlog, stderr=outlog,
+            cwd=ANSIBLE_PATH,
+        )
 
 
 class NetworkError(RuntimeError):
@@ -259,8 +286,22 @@ class ChooseInstallMethodDialog(BaseDialog):
 
         return TabPile(menu)
 
-    def download_latest_dputils(self, dest):
+    def configure_mysql(self):
+        new_password = get_random_string(32)
+        replace_mysql_password(new_password)
+        run_ansible('mysql-vm-restore.yml')
+
+    def download_latest_dputils(self):
         print('Getting latest dputils release...')
+        app_bin = None
+        app_dir = os.path.join(DESKPRO_PATH, 'app')
+        for directory in os.listdir(app_dir):
+            if re.match(r'^\d+$', directory):
+                app_bin = os.path.join(app_dir, directory, 'bin')
+                break
+
+        dputils_path = os.path.join(app_bin, 'dputils')
+        dputils_builds_path = os.path.join(app_bin, 'dputils_builds.zip')
 
         uri = 'https://api.github.com/repos/deskpro/dputils/releases/latest'
         response = requests.get(uri)
@@ -272,8 +313,10 @@ class ChooseInstallMethodDialog(BaseDialog):
                 break
 
         response = requests.get(builds_url)
-        with open(dest, 'wb') as fh:
+        with open(dputils_builds_path, 'wb') as fh:
             fh.write(response.content)
+
+        return dputils_path
 
     def on_install(self, button):
         self.loop.widget = WaitInstallDialog(self.loop)
@@ -281,16 +324,8 @@ class ChooseInstallMethodDialog(BaseDialog):
     def on_restore(self, button):
         self.loop.stop()
 
-        app_bin = None
-        app_dir = os.path.join(DESKPRO_PATH, 'app')
-        for directory in os.listdir(app_dir):
-            if re.match(r'^\d+$', directory):
-                app_bin = os.path.join(app_dir, directory, 'bin')
-                break
-
-        dputils_path = os.path.join(app_bin, 'dputils')
-        dputils_builds_path = os.path.join(app_bin, 'dputils_builds.zip')
-        self.download_latest_dputils(dputils_builds_path)
+        dputils_path = self.download_latest_dputils()
+        self.configure_mysql()
 
         proc = subprocess.run([dputils_path, "restore", "--interactive"])
 

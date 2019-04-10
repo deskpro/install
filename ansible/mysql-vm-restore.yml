@@ -1,0 +1,25 @@
+---
+- name: Configure MySQL for restoring an install with dputils
+  hosts: 127.0.0.1
+  connection: local
+  become: yes
+  vars:
+    deskpro_database_config_contents: |
+      <?php
+      $DB_CONFIG = [];
+      $DB_CONFIG['host'] = 'localhost';
+      $DB_CONFIG['user'] = 'deskpro';
+      $DB_CONFIG['password'] = '{{deskpro_database_user_password}}';
+      $DB_CONFIG['dbname'] = 'deskpro';
+
+  roles:
+    - mysql
+  tasks:
+    - name: Write the database config file for Deskpro
+      copy:
+        content: "{{deskpro_database_config_contents}}"
+        dest: "{{deskpro_site_root}}/config/config.database.php"
+        owner: deskpro
+        group: deskpro
+        mode: 0644
+
