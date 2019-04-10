@@ -8,6 +8,8 @@ import subprocess
 import urllib2
 import uuid
 
+INSTALL_UUID_FILENAME = "/etc/deskpro/install-uuid"
+
 
 def get_ansible_facts():
     # I know I can use the regular ansible api for this, but I'm not adding
@@ -28,18 +30,16 @@ def get_ansible_facts():
 
 
 def get_log_id():
-    path = os.path.expanduser('~/{{deskpro_install_uuid_filename}}')
-    with open(path) as uuidf:
-        return uuidf.read()
+    with open(INSTALL_UUID_FILENAME) as uuidf:
+        return uuidf.read().strip()
 
 
 def log_start(args):
     # The usual race condition applies here, but if we're trying to start
     # logging more than once at the same time, there's probably something
     # fishier going on
-    path = os.path.expanduser('~/{{deskpro_install_uuid_filename}}')
-    if not os.path.isfile(path):
-        with open(path, 'w') as uuidfile:
+    if not os.path.isfile(INSTALL_UUID_FILENAME):
+        with open(INSTALL_UUID_FILENAME, 'w') as uuidfile:
             uuidfile.write(str(uuid.uuid4()))
 
     log_id = get_log_id()

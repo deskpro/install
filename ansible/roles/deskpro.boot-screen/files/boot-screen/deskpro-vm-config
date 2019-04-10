@@ -8,9 +8,11 @@ import socket
 import subprocess
 import sys
 import time
+import uuid
 
 import dbus
 import netifaces
+import requests
 import systemd.daemon
 import urwid
 import yaml
@@ -211,6 +213,9 @@ class BootDialog(BaseDialog):
         super(BootDialog, self).__init__(widget, loop)
 
         self.loop.set_alarm_in(1, self.boot_finished)
+
+        with open('/etc/deskpro/install-uuid', 'w') as fh:
+            fh.write(str(uuid.uuid4()))
 
     def get_widget(self):
         text = urwid.Text('Booting...', 'center')
