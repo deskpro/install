@@ -11,14 +11,27 @@
       $DB_CONFIG['user'] = 'deskpro';
       $DB_CONFIG['password'] = '{{deskpro_database_user_password}}';
       $DB_CONFIG['dbname'] = 'deskpro';
-
+    deskpro_paths_config_contents: |
+      <?php
+      $PATHS_CONFIG = [];
+      $PATHS_CONFIG['php_path'] = '/usr/bin/php';
+      $PATHS_CONFIG['mysqldump_path'] = '/usr/bin/mysqldump';
+      $PATHS_CONFIG['mysql_path'] = '/usr/bin/mysql';
   roles:
     - mysql
   tasks:
-    - name: Write the database config file for Deskpro
+    - name: write the database config file for deskpro
       copy:
         content: "{{deskpro_database_config_contents}}"
         dest: "{{deskpro_site_root}}/config/config.database.php"
+        owner: deskpro
+        group: deskpro
+        mode: 0644
+
+    - name: write the paths config file for deskpro
+      copy:
+        content: "{{deskpro_paths_config_contents}}"
+        dest: "{{deskpro_site_root}}/config/config.paths.php"
         owner: deskpro
         group: deskpro
         mode: 0644
