@@ -2,4 +2,4 @@
 
 set -x
 
-/tmp/deskpro-install-source/deskpro-install.sh
+/tmp/kitchen/data/deskpro-install.sh

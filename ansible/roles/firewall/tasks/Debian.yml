@@ -17,5 +17,8 @@
   ignore_errors: yes
 
 - name: Block all other traffic
-  ufw: state=enabled policy=deny
+  ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
   ignore_errors: yes
