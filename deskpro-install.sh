@@ -318,7 +318,7 @@ change_mysql_password() {
 run_ansible() {
 	local playbook=$1
 
-	$SUDO ansible-playbook -vvvv -i 127.0.0.1, "$playbook" 2>&1 | $UNBUFFER tee --append "$FULL_LOG_FILE"
+	$SUDO ansible-playbook -i 127.0.0.1, "$playbook" 2>&1 | $UNBUFFER tee --append "$FULL_LOG_FILE"
 }
 
 function ansible_galaxy_roles_manual_install() {
@@ -329,6 +329,13 @@ function ansible_galaxy_roles_manual_install() {
 		mkdir "roles/$role"
 		curl -sL "$url" | tar xz --strip-components=1 -C "roles/$role"
 	fi
+}
+
+install_uuid() {
+	log_step "install_uuid"
+
+	mkdir /etc/deskpro
+	uuidgen > /etc/deskpro/install-uuid
 }
 
 install_deskpro() {
@@ -410,6 +417,7 @@ main() {
 	detect_distro
 	detect_repository
 	change_mysql_password
+	install_uuid
 	install_deskpro
 
 	check_memory
