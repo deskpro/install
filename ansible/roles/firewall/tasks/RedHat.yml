@@ -1,9 +1,21 @@
 ---
 - name: Enable firewall
-  service: name=firewalld enabled=yes state=started
+  service:
+    name: firewalld
+    enabled: yes
+    state: started
 
 - name: Enable incoming ports
-  firewalld: service={{item}} permanent=true state=enabled
+  firewalld:
+    service: "{{item}}"
+    permanent: true
+    immediate: true
+    state: enabled
+  register: result
+  retries: 3
+  delay: 5
+  until: result is succeeded
+  ignore_errors: yes
   with_items:
     - http
     - https

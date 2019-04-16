@@ -139,6 +139,7 @@ detect_repository() {
 	fi
 
 	ANSIBLE_DIR="$current_dir/ansible"
+	log_message "ANSIBLE_DIR=$ANSIBLE_DIR"
 
 	if [ ! -e "$ANSIBLE_DIR" ]; then
 		local -r tmp_dir=$(mktemp -dt dpbuild-XXXXXXXX)
