@@ -1,7 +1,8 @@
 ---
 - name: Install python-httplib2 from stretch
   apt:
-    deb: https://packages.sury.org/php/pool/main/p/python-httplib2/python-httplib2_0.11.3-1%2B0~20181104091007.2%2Bstretch~1.gbp2efb8a_all.deb
+    #deb: https://packages.sury.org/php/pool/main/p/python-httplib2/python-httplib2_0.11.3-1%2B0~20181104091007.2%2Bstretch~1.gbp2efb8a_all.deb
+    deb: https://packages.sury.org/php/pool/main/p/python-httplib2/python-httplib2_0.11.3-1%2B0~20190212170628.3%2Bstretch~1.gbp2efb8a_all.deb
   when: ansible_distribution_release == "jessie"
 
 - name: Install HTTPS apt transport
