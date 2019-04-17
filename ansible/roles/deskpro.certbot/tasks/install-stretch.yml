@@ -1,0 +1,12 @@
+---
+- name: Install Stretch backports
+  apt_repository:
+    repo: "deb http://deb.debian.org/debian stretch-backports main"
+    update_cache: yes
+
+- name: Install certbot
+  apt:
+    name:
+      - certbot
+      - python-certbot-nginx
+    default_release: stretch-backports

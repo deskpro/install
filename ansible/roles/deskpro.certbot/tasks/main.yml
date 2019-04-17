@@ -1,2 +1,8 @@
 - name: Run OS-specific install
-  include: "install-{{ansible_distribution | lower}}.yml"
+  include_tasks: "{{os_certbot_tasks}}"
+  with_first_found:
+    - "install-{{ansible_distribution_release | lower}}.yml"
+    - "install-{{ansible_distribution | lower}}.yml"
+    - "install-{{ansible_os_family | lower}}.yml"
+  loop_control:
+    loop_var: os_certbot_tasks
