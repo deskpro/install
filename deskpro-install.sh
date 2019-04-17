@@ -89,7 +89,7 @@ install_dependencies_debian() {
 		$SUDO apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
 
 		$SUDO apt-get update
-		$SUDO apt-get install --no-install-recommends -y curl jq aptitude apt-transport-https lsb-release python-pkg-resources python-openssl sudo
+		$SUDO apt-get install --no-install-recommends -y curl jq aptitude apt-transport-https lsb-release python-pkg-resources python-openssl sudo uuid-runtime
 		$SUDO apt-get install --no-install-recommends -y ansible
 
 	) >>"${FULL_LOG_FILE}" 2>&1
