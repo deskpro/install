@@ -338,6 +338,7 @@ class ChooseInstallMethodDialog(BaseDialog):
                 DESKPRO_PATH, 'www/installing.html',
             )
             os.unlink(installing_html_path)
+            os.unlink(INSTALL_IN_PROGRESS_FILENAME)
             self.loop.widget = InfoDialog(self.loop)
 
         self.loop.start()
