@@ -2,12 +2,14 @@
 - name: Include OS-specific vars
   include_vars: "{{item}}"
   with_first_found:
+    - "{{ansible_distribution_release | lower}}.yml"
     - "{{ansible_distribution | lower}}.yml"
     - "{{ansible_os_family | lower}}.yml"
 
 - name: Run OS-specific install
   include_tasks: "{{os_java_tasks}}"
   with_first_found:
+    - "install-{{ansible_distribution_release | lower}}.yml"
     - "install-{{ansible_distribution | lower}}.yml"
     - "install-{{ansible_os_family | lower}}.yml"
   loop_control:

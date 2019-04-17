@@ -1,0 +1,14 @@
+---
+- name: Install the Azul GPG key
+  apt_key:
+    keyserver: hkp://keyserver.ubuntu.com:80
+    id: '0xB1998361219BD9C9'
+
+- name: Install the Azul repositories
+  apt_repository:
+    repo: 'deb http://repos.azulsystems.com/debian stable main'
+    update_cache: yes
+
+- name: Install the Azul Java 8 distribution
+  apt:
+    name: zulu-8

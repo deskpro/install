@@ -1,11 +1,4 @@
 ---
-- name: Install the jessie-backports repository
-  apt_repository:
-    repo: 'deb http://ftp.debian.org/debian jessie-backports main'
-    update_cache: yes
-
 - name: Install Java
   apt:
-    name: "{{item}}"
-    default_release: jessie-backports
-  with_items: "{{deskpro_java_packages}}"
+    name: "{{deskpro_java_packages}}"
