@@ -14,7 +14,6 @@ import uuid
 
 import dbus
 import netifaces
-import requests
 import systemd.daemon
 import urwid
 import yaml
@@ -291,32 +290,11 @@ class ChooseInstallMethodDialog(BaseDialog):
         replace_mysql_password(new_password)
         run_ansible('mysql-vm-restore.yml')
 
-    def download_latest_dputils(self):
-        print('Getting latest dputils release...')
-        app_bin = None
+    def get_app_bin_path(self):
         app_dir = os.path.join(DESKPRO_PATH, 'app')
         for directory in os.listdir(app_dir):
             if re.match(r'^\d+$', directory):
-                app_bin = os.path.join(app_dir, directory, 'bin')
-                break
-
-        dputils_path = os.path.join(app_bin, 'dputils')
-        dputils_builds_path = os.path.join(app_bin, 'dputils_builds.zip')
-
-        uri = 'https://api.github.com/repos/deskpro/dputils/releases/latest'
-        response = requests.get(uri)
-
-        builds_url = None
-        for asset in response.json()['assets']:
-            if asset['name'] == 'builds.zip':
-                builds_url = asset['browser_download_url']
-                break
-
-        response = requests.get(builds_url)
-        with open(dputils_builds_path, 'wb') as fh:
-            fh.write(response.content)
-
-        return dputils_path
+                return os.path.join(app_dir, directory, 'bin')
 
     def on_install(self, button):
         self.loop.widget = WaitInstallDialog(self.loop)
@@ -324,7 +302,8 @@ class ChooseInstallMethodDialog(BaseDialog):
     def on_restore(self, button):
         self.loop.stop()
 
-        dputils_path = self.download_latest_dputils()
+        app_bin = self.get_app_bin_path()
+        dputils_path = os.path.join(app_bin, 'dputils')
         self.configure_mysql()
 
         proc = subprocess.run([dputils_path, "restore", "--interactive"])
