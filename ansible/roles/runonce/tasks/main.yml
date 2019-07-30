@@ -9,13 +9,6 @@
     mode=0700
   when: runonce_action == 'install'
 
-- name: Remove special cron job
-  cron:
-    name="deskpro run once"
-    cron_file={{deskpro_run_once_cron_name}}
-    state=absent
-  when: runonce_action == 'remove'
-
 - name: Remove first run script
   file:
     path=/root/first-run
