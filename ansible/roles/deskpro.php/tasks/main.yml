@@ -8,10 +8,11 @@
 - name: Run OS-specific install
   include: "install-{{ansible_distribution | lower}}.yml"
 
-- name: Remove configuration files from the scan dir
-  file:
-    path: "{{item}}"
-    state: absent
+- name: Truncate default config files from the scan dir
+  copy:
+    dest: "{{item}}"
+    follow: yes
+    content: ""
   with_fileglob:
     - "{{deskpro_php_ini_search_dir.cli}}/*"
     - "{{deskpro_php_ini_search_dir.fpm}}/*"
