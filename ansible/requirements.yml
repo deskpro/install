@@ -2,4 +2,4 @@
 - src: jdauphant.nginx
   version: "v2.15.1"
 - src: jnv.unattended-upgrades
-  version: "v1.2.0"
+  version: "v1.7.1"
