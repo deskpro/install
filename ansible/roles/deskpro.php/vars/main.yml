@@ -19,7 +19,6 @@ deskpro_php_default_ini_common:
       - json.so
       - ldap.so
       - mbstring.so
-      - mcrypt.so
       - mysqlnd.so
       - mysqli.so
       - odbc.so
@@ -74,4 +73,4 @@ deskpro_php_fpm_default_pools:
     pm.min_spare_servers: 1
     pm.max_spare_servers: 5
 
-deskpro_php_fpm_socket: /run/php7.1-fpm.sock
+deskpro_php_fpm_socket: /run/php7.2-fpm.sock

@@ -4,7 +4,6 @@ This repository contains a set of Ansible playbooks that you can use to install
 DeskPRO and its dependencies (PHP, Nginx, MySQL, Elasticsearch) to a single server. These
 playbooks can currently be used with:
 
-* Ubuntu 14.04
 * Ubuntu 16.04
 * Ubuntu 18.04
 * Debian Jessie
