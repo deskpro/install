@@ -1,7 +1,7 @@
 ---
 - name: Install IUS repository
   yum:
-    name: https://centos7.iuscommunity.org/ius-release.rpm
+    name: https://repo.ius.io/ius-release-el7.rpm
 
 - name: Install PHP packages
   yum:
