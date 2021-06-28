@@ -1,38 +1,38 @@
 ---
 deskpro_php_ini_path:
-  cli: /etc/php/7.2/cli/php.ini
-  fpm: /etc/php/7.2/fpm/php.ini
+  cli: /etc/php/7.4/cli/php.ini
+  fpm: /etc/php/7.4/fpm/php.ini
 deskpro_php_ini_search_dir: 
-  cli: /etc/php/7.2/cli/conf.d/
-  fpm: /etc/php/7.2/fpm/conf.d/
+  cli: /etc/php/7.4/cli/conf.d/
+  fpm: /etc/php/7.4/fpm/conf.d/
 
-deskpro_php_fpm_config_path: /etc/php/7.2/fpm/php-fpm.conf
-deskpro_php_fpm_pool_dir: /etc/php/7.2/fpm/pool.d
-deskpro_php_fpm_pid_file: /run/php/php7.2-fpm.pid
-deskpro_php_fpm_error_log: /var/log/php7.2-fpm.log
+deskpro_php_fpm_config_path: /etc/php/7.4/fpm/php-fpm.conf
+deskpro_php_fpm_pool_dir: /etc/php/7.4/fpm/pool.d
+deskpro_php_fpm_pid_file: /run/php/php7.4-fpm.pid
+deskpro_php_fpm_error_log: /var/log/php7.4-fpm.log
 deskpro_php_fpm_user: www-data
 deskpro_php_fpm_group: www-data
-deskpro_php_fpm_service_name: php7.2-fpm
+deskpro_php_fpm_service_name: php7.4-fpm
 
 deskpro_php_default_packages:
   - libpcre3-dev
-  - php7.2-apcu
-  - php7.2-bcmath
-  - php7.2-cli
-  - php7.2-common
-  - php7.2-curl
-  - php7.2-dev
-  - php7.2-fpm
-  - php7.2-gd
-  - php7.2-imap
-  - php7.2-intl
-  - php7.2-json
-  - php7.2-ldap
-  - php7.2-mbstring
-  - php7.2-mysql
-  - php7.2-odbc
-  - php7.2-opcache
-  - php7.2-soap
-  - php7.2-sqlite3
-  - php7.2-xml
-  - php7.2-zip
+  - php7.4-apcu
+  - php7.4-bcmath
+  - php7.4-cli
+  - php7.4-common
+  - php7.4-curl
+  - php7.4-dev
+  - php7.4-fpm
+  - php7.4-gd
+  - php7.4-imap
+  - php7.4-intl
+  - php7.4-json
+  - php7.4-ldap
+  - php7.4-mbstring
+  - php7.4-mysql
+  - php7.4-odbc
+  - php7.4-opcache
+  - php7.4-soap
+  - php7.4-sqlite3
+  - php7.4-xml
+  - php7.4-zip

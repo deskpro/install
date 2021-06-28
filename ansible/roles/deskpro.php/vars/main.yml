@@ -73,4 +73,4 @@ deskpro_php_fpm_default_pools:
     pm.min_spare_servers: 1
     pm.max_spare_servers: 5
 
-deskpro_php_fpm_socket: /run/php7.2-fpm.sock
+deskpro_php_fpm_socket: /run/php7.4-fpm.sock
