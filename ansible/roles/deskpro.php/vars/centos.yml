@@ -15,22 +15,22 @@ deskpro_php_fpm_group: php-fpm
 deskpro_php_fpm_service_name: php-fpm
 
 deskpro_php_default_packages:
-  - php72u-bcmath
-  - php72u-cli
-  - php72u-common
-  - php72u-devel
-  - php72u-fpm
-  - php72u-gd
-  - php72u-imap
-  - php72u-intl
-  - php72u-json
-  - php72u-ldap
-  - php72u-mbstring
-  - php72u-mysqlnd
-  - php72u-odbc
-  - php72u-opcache
-  - php72u-pdo
-  - php72u-pecl-apcu
-  - php72u-process
-  - php72u-soap
-  - php72u-xml
+  - php74-bcmath
+  - php74-cli
+  - php74-common
+  - php74-devel
+  - php74-fpm
+  - php74-gd
+  - php74-imap
+  - php74-intl
+  - php74-json
+  - php74-ldap
+  - php74-mbstring
+  - php74-mysqlnd
+  - php74-odbc
+  - php74-opcache
+  - php74-pdo
+  - php74-pecl-apcu
+  - php74-process
+  - php74-soap
+  - php74-xml
