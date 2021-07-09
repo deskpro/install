@@ -41,7 +41,6 @@ deskpro_php_default_ini_common:
       - xml.so
       - xmlwriter.so
       - xsl.so
-      - wddx.so
       - zip.so
     memory_limit: 1024M
     short_open_tag: 'off'
