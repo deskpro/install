@@ -31,6 +31,7 @@ deskpro_php_default_packages:
   - php74-opcache
   - php74-pdo
   - php74-pecl-apcu
+  - php74-pecl-zip
   - php74-process
   - php74-soap
   - php74-xml
