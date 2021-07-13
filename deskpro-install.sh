@@ -96,6 +96,15 @@ install_dependencies_debian() {
 	info_message 'Done'
 }
 
+install_ansible_dependencies_ubuntu() {
+	info_message -n 'Installing ansible dependencies... '
+	(
+		$SUDO apt-get update
+		$SUDO apt-get install -y python-is-python2
+	) >>"${FULL_LOG_FILE}" 2>&1
+	info_message 'Done'
+}
+
 install_dependencies_ubuntu() {
 	info_message -n 'Installing dependencies... '
 	(
@@ -178,6 +187,10 @@ detect_distro() {
 				install_dependencies_rhel
 				;;
 			ubuntu)
+				if [ "$VERSION_ID" = "20.04" ]; then
+					install_ansible_dependencies_ubuntu
+				fi
+
 				install_dependencies_ubuntu
 				;;
 			debian)
